@@ -4,6 +4,9 @@ from github import Github
 import random
 from dotenv import load_dotenv
 import os
+import time
+
+load_dotenv()
 
 load_dotenv()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -42,17 +45,33 @@ rubric = {
 g = Github(GITHUB_TOKEN)
 
 contributors = []
+user_cache = {}  # Cache to avoid repeated API calls
+
 for repo_name in REPOS_TO_SCAN:
     try:
+        print(f"Scanning {repo_name}...", file=sys.stderr)
         repo = g.get_repo(repo_name)
         contribs = repo.get_contributors()
         sorted_contribs = sorted(contribs, key=lambda c: c.contributions, reverse=True)[:TOP_N_PER_REPO]
+        count = 0
         for c in sorted_contribs:
             if c.contributions >= MIN_COMMITS:
-                user = g.get_user(c.login)
-                location = user.location if user.location else "Unknown"
-                contrib = {"username": c.login, "commits": c.contributions, "repo": repo_name, "location": location}
-                contributors.append(contrib)
+                try:
+                    # Check cache first
+                    if c.login not in user_cache:
+                        user = g.get_user(c.login)
+                        user_cache[c.login] = user.location if user.location else "Unknown"
+                        time.sleep(0.1)  # Rate limit: 100ms between requests
+                    
+                    location = user_cache[c.login]
+                    contrib = {"username": c.login, "commits": c.contributions, "repo": repo_name, "location": location}
+                    contributors.append(contrib)
+                    count += 1
+                    if count % 10 == 0:
+                        print(f"  ... {count} contributors processed from {repo_name}", file=sys.stderr)
+                except Exception as user_err:
+                    print(f"  Skipping {c.login}: {str(user_err)}", file=sys.stderr)
+        print(f"Completed {repo_name}: {count} contributors", file=sys.stderr)
     except Exception as e:
         print(f"Error on {repo_name}: {str(e)}", file=sys.stderr)
 
