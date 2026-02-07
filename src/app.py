@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import os
 import csv
 import json
@@ -17,6 +21,7 @@ from .services.signalhire_client import submit_identifier, API_BASE, API_PREFIX,
 from .lib.csv_writer import flatten_callback_payload
 
 APP_NAME = "SignalHire Cloud Webhook"
+
 
 app = FastAPI(title=APP_NAME, version="1.0.0")
 
