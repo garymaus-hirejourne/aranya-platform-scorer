@@ -1,6 +1,6 @@
-import csv
+﻿import csv
 import sys
-from github import Auth, Github
+from github import Github
 import random
 from dotenv import load_dotenv
 import os
@@ -8,32 +8,42 @@ import time
 from pathlib import Path
 
 load_dotenv()
+
+load_dotenv()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 if not GITHUB_TOKEN:
     raise ValueError("GITHUB_TOKEN not found in .env file")
 
 REPOS_TO_SCAN = [
-    "kubernetes-sigs/kubebuilder",
-    "operator-framework/operator-sdk",
-    "hashicorp/terraform-provider-kubernetes",
-    "helm/helm",
     "argoproj/argo-cd",
+    "argoproj-labs/argocd-operator",
+    "argoproj-labs/argocd-autopilot",
+    "argoproj-labs/argocd-image-updater",
+    "cilium/cilium",
     "rook/rook",
+    "ceph/ceph-csi-operator",
+    "kubernetes-sigs/cluster-api",
+    "operator-framework/operator-sdk",
+    "prometheus-operator/prometheus-operator",
+    "kubernetes/kubernetes"
 ]
 
-MIN_COMMITS = 5
+MIN_COMMITS = 10
 TOP_N_PER_REPO = 50
 
 rubric = {
-    'Go_K8s_Operators': 30,
-    'IaC_Terraform_Helm': 25,
-    'Tooling_Automation': 20,
-    'GitOps': 10,
+    'Operators': 20,
+    'GitOps': 15,
     'Storage': 10,
-    'OSS_Familiarity': 5,
+    'Networking': 10,
+    'MultiCluster': 10,
+    'IaC': 10,
+    'Observability': 10,
+    'OSS': 10,
+    'Product': 5
 }
 
-g = Github(auth=Auth.Token(GITHUB_TOKEN))
+g = Github(GITHUB_TOKEN)
 
 contributors = []
 user_cache = {}  # Cache to avoid repeated API calls
@@ -90,42 +100,40 @@ for contrib in us_candidates:
 
     scores = {dim: 0 for dim in rubric}
 
-    is_infra_god = commits > 400
-
-    scores["OSS_Familiarity"] = min(5, 2 + (commits // 50))
-    if is_infra_god:
-        scores["OSS_Familiarity"] = 2
-
-    if "operator" in repo.lower() or "kubebuilder" in repo.lower():
-        scores["Go_K8s_Operators"] = min(30, 15 + (commits // 10))
-        scores["Tooling_Automation"] = min(20, 10 + (commits // 15))
-
-    if "terraform" in repo.lower() or "helm" in repo.lower():
-        scores["IaC_Terraform_Helm"] = min(25, 15 + (commits // 10))
-        scores["Tooling_Automation"] = min(20, 10 + (commits // 15))
-
+    # Tuned boosts: Higher for Argo (GitOps +5 if commits >200, Operators +5)
     if "argo" in repo.lower():
-        scores["GitOps"] = min(10, 5 + (commits // 20))
-        scores["Tooling_Automation"] = min(20, 5 + (commits // 20))
-
+        scores["GitOps"] = min(15, 10 + (commits // 10) + (5 if commits > 200 else 0))
+        scores["Operators"] = min(20, 12 + (commits // 20) + (5 if commits > 200 else 0))
+    # Kubernetes boost
+    if "kubernetes" in repo.lower():
+        scores["Operators"] = min(20, scores["Operators"] + 8)
+        scores["MultiCluster"] = min(10, scores["MultiCluster"] + 5)
+    # Other boosts
+    if "cilium" in repo.lower():
+        scores["Networking"] = min(10, 8 + (commits // 50))
+        scores["Observability"] = min(10, 5 + (commits // 50))
     if "rook" in repo.lower() or "ceph" in repo.lower():
-        scores["Storage"] = min(10, 5 + (commits // 20))
+        scores["Storage"] = min(10, 8 + (commits // 50))
+    if "operator-sdk" in repo.lower() or "operator" in repo.lower():
+        scores["Operators"] = min(20, 12 + (commits // 30))
+    if "cluster-api" in repo.lower():
+        scores["MultiCluster"] = min(10, 7 + (commits // 50))
+    if "helm" in repo.lower() or "terraform" in repo.lower():
+        scores["IaC"] = min(10, 6 + (commits // 50))
+    if "prometheus" in repo.lower() or "grafana" in repo.lower():
+        scores["Observability"] = min(10, 7 + (commits // 50))
+
+    scores["OSS"] = min(10, 5 + (commits // 100))
 
     for dim in scores:
         if scores[dim] == 0:
             scores[dim] = random.randint(0, rubric[dim] // 3)
 
     overall = sum(scores.values())
+    rationale = f"From {repo} ({commits} commits). Location: {location}."
+    risks = "SFO/Bay Area" if any(word in location.lower() for word in ["san francisco", "bay area", "sfo", "sunnyvale", "mountain view", "cupertino"]) else "US (non-SFO)"
 
-    rationale = f"From {repo} ({commits} commits)."
-    risks = []
-    if "san francisco" not in location.lower() and "sfo" not in location.lower() and "bay area" not in location.lower():
-        risks.append("Non-SFO Location")
-    if is_infra_god:
-        risks.append("Potential 'Infra God' (High Commit Vol)")
-    risk_str = ", ".join(risks) if risks else "Clear"
-
-    row = [username, overall, commits, repo, location] + list(scores.values()) + [rationale, risk_str]
+    row = [username, overall, commits, repo, location] + list(scores.values()) + [rationale, risks]
     data.append(row)
 
 # Sort by score descending
@@ -135,7 +143,7 @@ headers = ['GitHub Username', 'Overall Score', 'Commits', 'Repo', 'Location'] + 
 
 output_dir = Path(__file__).resolve().parents[1] / "output"
 output_dir.mkdir(parents=True, exist_ok=True)
-output_path = output_dir / "candidates_new.csv"
+output_path = output_dir / "candidates_v1.csv"
 
 with output_path.open("w", newline="", encoding="utf-8") as f:
     file_writer = csv.writer(f)
@@ -146,4 +154,4 @@ writer = csv.writer(sys.stdout)
 writer.writerow(headers)
 writer.writerows(data)
 
-print(f"CSV output complete. {len(data)} US candidates written.", file=sys.stderr)
+print(f"CSV output complete. {len(data)} US candidates written (SFO preferred).", file=sys.stderr)

@@ -7,3 +7,7 @@ __pycache__/
 output/
 *.log
 .env
+# Generated outputs
+candidates*.csv
+output/candidates*.csv
+*.txt

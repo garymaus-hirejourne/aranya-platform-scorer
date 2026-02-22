@@ -8,6 +8,7 @@ from github import Github
 import random
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
 load_dotenv()
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -110,6 +111,15 @@ for contrib in contributors:
 data.sort(key=lambda x: x[1], reverse=True)
 
 headers = ['GitHub Username', 'Overall Score', 'Commits', 'Repo', 'Location'] + list(rubric.keys()) + ['Rationale', 'Risks']
+
+output_dir = Path(__file__).resolve().parents[1] / "output"
+output_dir.mkdir(parents=True, exist_ok=True)
+output_path = output_dir / "candidates_lite.csv"
+
+with output_path.open("w", newline="", encoding="utf-8") as f:
+    file_writer = csv.writer(f)
+    file_writer.writerow(headers)
+    file_writer.writerows(data)
 
 writer = csv.writer(sys.stdout)
 writer.writerow(headers)

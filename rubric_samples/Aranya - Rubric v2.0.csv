@@ -1,0 +1,20 @@
+Dimension,Weight,Max Score,Evidence Examples,Scoring Guidelines (0-Max)
+Go + K8s Operators & Tooling (Go),30%,30,Kubebuilder/Operator SDK usage; CRDs/controllers; reconciler logic; Go-based platform tooling,24-30: Authored/led prod operators or significant Go tooling
+,,,,12-23: Meaningful contributions to operators/tooling
+,,,,0-11: Basic usage only
+IaC Fluency (Terraform + Helm),25%,25,Terraform modules/providers; Helm chart authoring; templating; release workflows,20-25: Deep Terraform+Helm builder and maintainer-level usage
+,,,,10-19: Regular user; some authoring/customization
+,,,,0-9: Limited exposure
+Tooling & Automation (Infra-adjacent services),20%,20,CLI tools; automation services; pipelines; developer workflows; reliability tooling,16-20: Built durable automation products (not just scripts)
+,,,,8-15: Some tooling/automation beyond basics
+,,,,0-7: Mostly manual / script-only
+GitOps / ArgoCD,10%,10,"ArgoCD workflows, ApplicationSets, plugins, App-of-Apps; GitOps design docs/PRs",8-10: Deep ArgoCD/GitOps contributor or strong architect
+,,,,4-7: Daily user + some customization
+,,,,0-3: Basic exposure
+Storage (Ceph / Rook / WEKA),10%,10,Rook/Ceph operational experience; storage CRDs/controllers; scaling stories,8-10: Prod storage at scale + contributions
+,,,,4-7: Operator/user only
+,,,,0-3: No relevant exp
+OSS Familiarity (Contributor > Maintainer),5%,5,PRs/issues across relevant repos; OSS hygiene; community involvement,4-5: Sustained OSS contributor with multiple meaningful PRs
+,,,,2-3: Some OSS activity
+,,,,0-1: No public OSS
+Total Score,100%,100,,80+ Threshold for top fits
