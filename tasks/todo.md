@@ -1,0 +1,62 @@
+- [2026-02-22 07:38:12] Starting Sharded Deep Search: US Platform Engineers (2015-2024)
+- [2026-02-22 07:45:37] Deep Search Complete. Found 254 unique candidates matching base criteria.
+- [2026-02-22 08:53:26] STARTING DEEP SEARCH: 50 States x 10 Years.
+- [2026-02-22 08:53:51] COMPLETED Alabama: Extracted 0 users.
+- [2026-02-22 08:54:17] COMPLETED Alaska: Extracted 0 users.
+- [2026-02-22 08:54:44] COMPLETED Arizona: Extracted 3 users.
+- [2026-02-22 08:55:10] COMPLETED Arkansas: Extracted 0 users.
+- [2026-02-22 08:55:35] COMPLETED California: Extracted 8 users.
+- [2026-02-22 08:56:00] COMPLETED Colorado: Extracted 4 users.
+- [2026-02-22 08:56:27] COMPLETED Connecticut: Extracted 1 users.
+- [2026-02-22 08:57:44] STARTING DEEP SEARCH: 50 States x 10 Years.
+- [2026-02-22 08:58:17] COMPLETED Alabama: Extracted 13 users.
+- [2026-02-22 08:58:47] COMPLETED Alaska: Extracted 9 users.
+- [2026-02-22 08:59:13] COMPLETED Arizona: Extracted 45 users.
+- [2026-02-22 08:59:40] COMPLETED Arkansas: Extracted 10 users.
+- [2026-02-22 09:00:06] COMPLETED California: Extracted 358 users.
+- [2026-02-22 09:00:33] COMPLETED Colorado: Extracted 141 users.
+- [2026-02-22 09:01:01] COMPLETED Connecticut: Extracted 8 users.
+- [2026-02-22 09:01:27] COMPLETED Delaware: Extracted 14 users.
+- [2026-02-22 09:01:53] COMPLETED Florida: Extracted 122 users.
+- [2026-02-22 09:02:20] COMPLETED Georgia: Extracted 112 users.
+- [2026-02-22 09:02:47] COMPLETED Hawaii: Extracted 15 users.
+- [2026-02-22 09:03:18] COMPLETED Idaho: Extracted 32 users.
+- [2026-02-22 09:03:48] COMPLETED Illinois: Extracted 39 users.
+- [2026-02-22 09:04:14] COMPLETED Indiana: Extracted 23 users.
+- [2026-02-22 09:04:40] COMPLETED Iowa: Extracted 14 users.
+- [2026-02-22 09:05:05] COMPLETED Kansas: Extracted 46 users.
+- [2026-02-22 09:05:32] COMPLETED Kentucky: Extracted 11 users.
+- [2026-02-22 09:05:58] COMPLETED Louisiana: Extracted 8 users.
+- [2026-02-22 09:06:25] COMPLETED Maine: Extracted 13 users.
+- [2026-02-22 09:06:51] COMPLETED Maryland: Extracted 46 users.
+- [2026-02-22 09:07:17] COMPLETED Massachusetts: Extracted 27 users.
+- [2026-02-22 09:07:43] COMPLETED Michigan: Extracted 57 users.
+- [2026-02-22 09:08:14] COMPLETED Minnesota: Extracted 34 users.
+- [2026-02-22 09:08:44] COMPLETED Mississippi: Extracted 3 users.
+- [2026-02-22 09:09:23] COMPLETED Missouri: Extracted 18 users.
+- [2026-02-22 09:09:54] COMPLETED Montana: Extracted 10 users.
+- [2026-02-22 09:10:25] COMPLETED Nebraska: Extracted 10 users.
+- [2026-02-22 09:10:57] COMPLETED Nevada: Extracted 11 users.
+- [2026-02-22 09:11:28] COMPLETED New Hampshire: Extracted 15 users.
+- [2026-02-22 09:11:57] COMPLETED New Jersey: Extracted 57 users.
+- [2026-02-22 09:12:29] COMPLETED New Mexico: Extracted 10 users.
+- [2026-02-22 09:13:00] COMPLETED New York: Extracted 535 users.
+- [2026-02-22 09:13:31] COMPLETED North Carolina: Extracted 32 users.
+- [2026-02-22 09:14:02] COMPLETED North Dakota: Extracted 2 users.
+- [2026-02-22 09:14:33] COMPLETED Ohio: Extracted 70 users.
+- [2026-02-22 09:15:04] COMPLETED Oklahoma: Extracted 18 users.
+- [2026-02-22 09:15:35] COMPLETED Oregon: Extracted 48 users.
+- [2026-02-22 09:16:06] COMPLETED Pennsylvania: Extracted 29 users.
+- [2026-02-22 09:16:36] COMPLETED Rhode Island: Extracted 5 users.
+- [2026-02-22 09:17:06] COMPLETED South Carolina: Extracted 14 users.
+- [2026-02-22 09:17:36] COMPLETED South Dakota: Extracted 0 users.
+- [2026-02-22 09:18:06] COMPLETED Tennessee: Extracted 20 users.
+- [2026-02-22 09:18:37] COMPLETED Texas: Extracted 243 users.
+- [2026-02-22 09:19:07] COMPLETED Utah: Extracted 39 users.
+- [2026-02-22 09:19:37] COMPLETED Vermont: Extracted 4 users.
+- [2026-02-22 09:20:08] COMPLETED Virginia: Extracted 91 users.
+- [2026-02-22 09:20:39] COMPLETED Washington: Extracted 140 users.
+- [2026-02-22 09:21:10] COMPLETED West Virginia: Extracted 2 users.
+- [2026-02-22 09:21:40] COMPLETED Wisconsin: Extracted 11 users.
+- [2026-02-22 09:22:12] COMPLETED Wyoming: Extracted 9 users.
+- [2026-02-22 09:22:12] DEEP SEARCH COMPLETE. Total Unique Users Extracted: 2629

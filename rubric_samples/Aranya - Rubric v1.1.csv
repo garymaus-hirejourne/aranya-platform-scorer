@@ -1,0 +1,47 @@
+﻿Dimension,Weight,Max Score,Evidence Examples,Scoring Guidelines (0–Max)
+Go + Kubernetes Internals & Operators,20%,20,Go for controllers/CRDs/operators; reconciler logic; Kubebuilder/Operator SDK,16–20: Prod operators authored in Go
+,,,,
+,,,,8–15: Contributed to operators/internals
+,,,,
+,,,,0–7: Only used operators
+GitOps / ArgoCD Depth,15%,15,"ArgoCD workflows, ApplicationSets, plugins, App-of-Apps; GitOps design docs/PRs",12–15: Deep contributor/user with opinions
+,,,,
+,,,,6–11: Daily user + some custom
+,,,,
+,,,,0–5: Basic exposure
+Distributed Storage (Ceph / WEKA),10%,10,Production Ceph/WEKA clusters; storage CRDs/controllers; scaling stories,8–10: Prod Ceph/WEKA at scale + contribs
+,,,,
+,,,,4–7: Ceph user only
+,,,,
+,,,,0–3: No relevant exp
+Networking (Cilium / CNI / Mesh),10%,10,Cilium eBPF usage; CNI plugins; service mesh (Istio/Linkerd); network policy design,8–10: Cilium contributor or deep user
+,,,,
+,,,,4–7: Basic Cilium exposure
+,,,,
+,,,,0–3: Generic k8s net
+Multi-Cluster / Federation,10%,10,"Karmada, Cluster API, federation-v2; multi-cluster GitOps; cross-cluster state mgmt",8–10: Built multi-cluster systems
+,,,,
+,,,,4–7: Used federation tools
+,,,,
+,,,,0–3: Single-cluster only
+IaC & Automation (Terraform/Helm/etc.),10%,10,Terraform/Helm/Ansible/Kubespray for provisioning; CI/CD pipelines,8–10: Prod IaC + automation
+,,,,
+,,,,4–7: Basic tools
+,,,,
+,,,,0–3: None
+Observability & Monitoring,10%,10,Prometheus/Grafana; logging/monitoring systems,8–10: Built systems
+,,,,
+,,,,4–7: Prod user
+,,,,
+,,,,0–3: Basic
+OSS Contributions & Visibility,10%,10,PRs/issues in k8s/argo/ceph/cilium repos; blog posts/talks; maintainer status,8–10: Sustained OSS (PRs + issues)
+,,,,
+,,,,4–7: A few meaningful PRs
+,,,,
+,,,,0–3: No public OSS
+Product / Developer Tooling Mindset,5%,5,DevEx focus; self-service platforms; DX tooling; talks/blogs on platform engineering,4–5: Clear product instincts + examples
+,,,,
+,,,,2–3: Some DX focus
+,,,,
+,,,,0–1: Pure infra
+Total Score,100%,100,,80+ Threshold for top fits

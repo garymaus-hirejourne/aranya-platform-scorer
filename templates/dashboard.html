@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiting Pipeline Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            border: 1px solid #334155;
+        }
+        
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #60a5fa;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .outcome-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 3px;
+        }
+        
+        .outcome-hired { background: #10b981; color: white; }
+        .outcome-interviewed { background: #3b82f6; color: white; }
+        .outcome-phone_screen { background: #8b5cf6; color: white; }
+        .outcome-rejected { background: #ef4444; color: white; }
+        .outcome-no_response { background: #6b7280; color: white; }
+        
+        .timeline {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .timeline-item {
+            padding: 15px;
+            border-left: 3px solid #3b82f6;
+            margin-bottom: 15px;
+            background: #0f172a;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .timeline-item:hover {
+            background: #1e293b;
+        }
+        
+        .timeline-date {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-username {
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-notes {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+        
+        .insight-box {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .insight-box h3 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .insight-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .insight-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .insight-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .tech-tag {
+            display: inline-block;
+            background: #1e40af;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin: 3px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+        
+        .spinner {
+            border: 3px solid #334155;
+            border-top: 3px solid #60a5fa;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .pipeline-run {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #8b5cf6;
+        }
+        
+        .pipeline-run-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .pipeline-run-date {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .pipeline-run-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .pipeline-run-stat {
+            color: #64748b;
+        }
+        
+        .pipeline-run-stat strong {
+            color: #60a5fa;
+        }
+        
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+        }
+        
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-active { background: #10b981; }
+        .status-idle { background: #6b7280; }
+        
+        .wide-card {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Recruiting Pipeline Dashboard</h1>
+            <p class="subtitle">Real-time learning and optimization insights</p>
+        </header>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>📊 Overall Statistics</h2>
+                <div id="stats-content" class="loading">
+                    <div class="spinner"></div>
+                    Loading stats...
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🎓 Learning Status</h2>
+                <div id="learning-status" class="loading">
+                    <div class="spinner"></div>
+                    Analyzing...
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>🚀 Pipeline Status</h2>
+                <div id="pipeline-status" class="loading">
+                    <div class="spinner"></div>
+                    Checking...
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card wide-card">
+                <h2>📈 Rubric Weight Evolution</h2>
+                <div class="chart-container">
+                    <canvas id="rubricChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>🧠 Learning Insights</h2>
+                <div id="insights-content" class="loading">
+                    <div class="spinner"></div>
+                    Analyzing patterns...
+                </div>
+                <button class="refresh-btn" onclick="refreshInsights()">🔄 Refresh Insights</button>
+            </div>
+            
+            <div class="card">
+                <h2>📜 Feedback Timeline</h2>
+                <div id="timeline-content" class="loading">
+                    <div class="spinner"></div>
+                    Loading timeline...
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="card wide-card">
+                <h2>🗂️ Pipeline Run History</h2>
+                <div id="history-content" class="loading">
+                    <div class="spinner"></div>
+                    Loading history...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let rubricChart = null;
+        
+        async function fetchData(endpoint) {
+            const response = await fetch(`/api/${endpoint}`);
+            return await response.json();
+        }
+        
+        async function loadStats() {
+            const stats = await fetchData('stats');
+            const statsHtml = `
+                <div class="stat-value">${stats.total}</div>
+                <div class="stat-label">Total Candidates Tracked</div>
+                <div style="margin-top: 20px;">
+                    ${Object.entries(stats.outcomes || {}).map(([outcome, count]) => 
+                        `<span class="outcome-badge outcome-${outcome}">${outcome}: ${count}</span>`
+                    ).join('')}
+                </div>
+                <div style="margin-top: 20px;">
+                    <div class="stat-value" style="font-size: 2rem;">${stats.success_rate}%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            `;
+            document.getElementById('stats-content').innerHTML = statsHtml;
+        }
+        
+        async function loadLearningStatus() {
+            const stats = await fetchData('stats');
+            let statusHtml = '';
+            
+            if (stats.total < 3) {
+                statusHtml = `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
+                        <div class="stat-label">Collecting Data</div>
+                        <div style="margin-top: 15px; color: #94a3b8;">
+                            ${stats.total} / 3 candidates needed for learning
+                        </div>
+                    </div>
+                `;
+            } else {
+                statusHtml = `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">✅</div>
+                        <div class="stat-label">Learning Active</div>
+                        <div style="margin-top: 15px; color: #10b981; font-weight: bold;">
+                            System is optimizing based on ${stats.total} candidates
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('learning-status').innerHTML = statusHtml;
+        }
+        
+        async function loadPipelineStatus() {
+            const progress = await fetchData('progress');
+            let statusHtml = '';
+            
+            if (progress.status === 'idle') {
+                statusHtml = `
+                    <div style="text-align: center; padding: 20px;">
+                        <span class="status-indicator status-idle"></span>
+                        <span class="stat-label">Idle</span>
+                        <div style="margin-top: 15px; color: #64748b;">
+                            No pipeline currently running
+                        </div>
+                    </div>
+                `;
+            } else {
+                statusHtml = `
+                    <div style="text-align: center; padding: 20px;">
+                        <span class="status-indicator status-active"></span>
+                        <span class="stat-label">Running</span>
+                        <div style="margin-top: 15px; color: #10b981; font-weight: bold;">
+                            ${progress.current_step || 'Processing...'}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('pipeline-status').innerHTML = statusHtml;
+        }
+        
+        async function loadInsights() {
+            const insights = await fetchData('insights');
+            let insightsHtml = '';
+            
+            if (insights.status === 'insufficient_data') {
+                insightsHtml = `<div style="padding: 20px; text-align: center; color: #64748b;">${insights.message}</div>`;
+            } else if (insights.status === 'error') {
+                insightsHtml = `<div style="padding: 20px; text-align: center; color: #ef4444;">Error: ${insights.message}</div>`;
+            } else if (insights.common_technologies) {
+                insightsHtml = `
+                    <div class="insight-box">
+                        <h3>🔧 Common Technologies</h3>
+                        <div>
+                            ${insights.common_technologies.map(tech => 
+                                `<span class="tech-tag">${tech}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="insight-box">
+                        <h3>📦 Repository Patterns</h3>
+                        <ul class="insight-list">
+                            ${insights.repository_patterns.map(pattern => 
+                                `<li>${pattern}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="insight-box">
+                        <h3>🔍 Improved Search Queries</h3>
+                        <ul class="insight-list">
+                            ${insights.improved_search_queries.map(query => 
+                                `<li><code style="color: #60a5fa;">${query}</code></li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                insightsHtml = `<div style="padding: 20px; text-align: center; color: #64748b;">No insights available yet</div>`;
+            }
+            
+            document.getElementById('insights-content').innerHTML = insightsHtml;
+        }
+        
+        async function loadTimeline() {
+            const timeline = await fetchData('timeline');
+            let timelineHtml = '';
+            
+            if (timeline.length === 0) {
+                timelineHtml = '<div style="padding: 20px; text-align: center; color: #64748b;">No feedback recorded yet</div>';
+            } else {
+                timelineHtml = '<div class="timeline">';
+                timeline.reverse().forEach(item => {
+                    const date = new Date(item.timestamp).toLocaleString();
+                    timelineHtml += `
+                        <div class="timeline-item">
+                            <div class="timeline-date">${date}</div>
+                            <div class="timeline-username">${item.username}</div>
+                            <span class="outcome-badge outcome-${item.outcome}">${item.outcome}</span>
+                            ${item.notes ? `<div class="timeline-notes">${item.notes}</div>` : ''}
+                        </div>
+                    `;
+                });
+                timelineHtml += '</div>';
+            }
+            
+            document.getElementById('timeline-content').innerHTML = timelineHtml;
+        }
+        
+        async function loadHistory() {
+            const history = await fetchData('pipeline_history');
+            let historyHtml = '';
+            
+            if (history.length === 0) {
+                historyHtml = '<div style="padding: 20px; text-align: center; color: #64748b;">No pipeline runs yet</div>';
+            } else {
+                history.forEach(run => {
+                    const date = new Date(run.timestamp).toLocaleString();
+                    historyHtml += `
+                        <div class="pipeline-run">
+                            <div class="pipeline-run-header">
+                                <div class="pipeline-run-date">📅 ${date}</div>
+                            </div>
+                            <div class="pipeline-run-stats">
+                                ${run.num_dimensions ? `<div class="pipeline-run-stat"><strong>${run.num_dimensions}</strong> dimensions</div>` : ''}
+                                ${run.num_queries ? `<div class="pipeline-run-stat"><strong>${run.num_queries}</strong> queries</div>` : ''}
+                                ${run.num_candidates ? `<div class="pipeline-run-stat"><strong>${run.num_candidates}</strong> candidates</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            document.getElementById('history-content').innerHTML = historyHtml;
+        }
+        
+        async function loadRubricEvolution() {
+            const evolution = await fetchData('rubric_evolution');
+            
+            if (evolution.length === 0) return;
+            
+            const allDimensions = new Set();
+            evolution.forEach(run => {
+                Object.keys(run.weights).forEach(dim => allDimensions.add(dim));
+            });
+            
+            const datasets = Array.from(allDimensions).map((dim, idx) => {
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+                return {
+                    label: dim,
+                    data: evolution.map(run => run.weights[dim] || 0),
+                    borderColor: colors[idx % colors.length],
+                    backgroundColor: colors[idx % colors.length] + '33',
+                    tension: 0.4
+                };
+            });
+            
+            const ctx = document.getElementById('rubricChart').getContext('2d');
+            
+            if (rubricChart) {
+                rubricChart.destroy();
+            }
+            
+            rubricChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: evolution.map(run => new Date(run.timestamp).toLocaleDateString()),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#e2e8f0' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        async function refreshInsights() {
+            document.getElementById('insights-content').innerHTML = '<div class="loading"><div class="spinner"></div>Analyzing...</div>';
+            await loadInsights();
+        }
+        
+        async function loadAll() {
+            await Promise.all([
+                loadStats(),
+                loadLearningStatus(),
+                loadPipelineStatus(),
+                loadInsights(),
+                loadTimeline(),
+                loadHistory(),
+                loadRubricEvolution()
+            ]);
+        }
+        
+        loadAll();
+        
+        setInterval(() => {
+            loadPipelineStatus();
+        }, 5000);
+        
+        setInterval(() => {
+            loadAll();
+        }, 30000);
+    </script>
+</body>
+</html>
