@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Step 4: Contact Enrichment (SignalHire)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:1.5rem; }
+    h1 { font-size:1.6rem; margin-bottom:0.25rem; }
+    .subhead { color:#9ca3af; margin-bottom:1.25rem; }
+    .card { max-width:720px; background:#020617; border-radius:0.75rem; border:1px solid #1f2937; padding:1.25rem 1.5rem; margin-bottom:1.5rem; }
+    label { display:block; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.08em; color:#9ca3af; margin-bottom:0.25rem; }
+    input[type="text"], input[type="number"], input[type="password"] { width:100%; padding:0.45rem 0.6rem; border-radius:0.4rem; border:1px solid #1f2937; background:#020617; color:#e5e7eb; font-size:0.9rem; box-sizing:border-box; }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus { outline:none; border-color:#22c55e; }
+    .field { margin-bottom:0.8rem; }
+    .hint { font-size:0.75rem; color:#6b7280; margin-top:0.15rem; }
+    button { border:none; border-radius:999px; padding:0.45rem 1.1rem; font-size:0.9rem; font-weight:600; cursor:pointer; }
+    .btn-primary { background:#2563eb; color:#e5e7eb; }
+    .btn-primary:hover { background:#1d4ed8; }
+    .btn-success { background:#22c55e; color:#022c22; }
+    .btn-success:hover { background:#16a34a; }
+    button[disabled] { background:#4b5563; color:#9ca3af; cursor:not-allowed; }
+    .status-ok { color:#22c55e; font-weight:500; }
+    .status-error { color:#f97316; font-weight:500; }
+    pre { background:#020617; border-radius:0.5rem; border:1px solid #1f2937; padding:0.75rem; font-size:0.8rem; overflow:auto; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <h1>Step 4: Contact Enrichment (SignalHire)</h1>
+  <div class="subhead">Upload the Clay-merged CSV to find emails and phone numbers via SignalHire.</div>
+
+  <div class="card" id="result_card">
+    <form method="post" action="/enrich" enctype="multipart/form-data">
+      <div class="field">
+        <label for="input_file">Input CSV file (upload)</label>
+        <input type="file" id="input_file" name="input_file" accept=".csv" />
+        <div class="hint">Choose a CSV file from this computer. If provided, this will be used instead of the path below.</div>
+      </div>
+
+      <div class="field">
+        <label for="input_csv">Input CSV path (optional)</label>
+        <input type="text" id="input_csv" name="input_csv" placeholder="G:\\My Drive\\...\\JDB_Signalhire_Upload_test.csv" />
+        <div class="hint">Full path on this machine to the SignalHire upload CSV (used when no file is uploaded).</div>
+      </div>
+
+      <details style="margin-top:0.75rem; margin-bottom:0.5rem;">
+        <summary style="cursor:pointer; font-size:0.8rem; color:#9ca3af;">Advanced settings</summary>
+        <div style="margin-top:0.75rem;">
+          <div class="field">
+            <label for="webhook_base">Webhook base URL (optional)</label>
+            <input type="text" id="webhook_base" name="webhook_base" placeholder="https://&lt;tunnel&gt;.trycloudflare.com" />
+            <div class="hint">If left blank, uses the <code>WEBHOOK_BASE_URL</code> environment variable. This should point to the public URL that forwards to this webhook server.</div>
+          </div>
+
+          <div class="field">
+            <label for="api_key">SignalHire API key (optional)</label>
+            <input type="password" id="api_key" name="api_key" placeholder="202.xxxxx" />
+            <div class="hint">If left blank, uses the <code>SIGNALHIRE_API_KEY</code> environment variable configured on the server.</div>
+          </div>
+
+          <div class="field" style="display:flex; gap:0.75rem;">
+            <div style="flex:1;">
+              <label for="batch_size">Batch size</label>
+              <input type="number" id="batch_size" name="batch_size" value="50" min="1" max="100" />
+              <div class="hint">Identifiers per API request (max 100).</div>
+            </div>
+            <div style="flex:1;">
+              <label for="timeout">Timeout (seconds)</label>
+              <input type="number" id="timeout" name="timeout" value="900" min="60" />
+              <div class="hint">How long to wait for webhook callbacks before giving up.</div>
+            </div>
+            <div style="flex:1;">
+              <label for="poll_interval">Poll interval (seconds)</label>
+              <input type="number" id="poll_interval" name="poll_interval" value="20" min="2" />
+              <div class="hint">How often to poll the results file.</div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="hint" style="margin-top:0.25rem; font-size:0.78rem; color:#6b7280;">
+        All output files for this run will be written in the <strong>same folder as the input CSV</strong>,
+        including the final <code>.FINAL_ENRICHED.csv</code> and any <code>.missing_for_enrichment.csv</code> file.
+      </div>
+
+      <div style="margin-top:0.75rem; display:flex; gap:0.75rem; align-items:center;">
+        <button type="submit" class="btn-primary" id="run_enrichment_btn">Run enrichment</button>
+        <button type="button" class="btn-primary" id="merge_clay_btn" disabled>Merge with Clay</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" id="manual_merge_card">
+    <h2 style="margin:0 0 0.5rem 0; font-size:1.1rem;">Post-enrichment merge</h2>
+    <div class="hint" style="margin-bottom:0.75rem;">
+      Use this if you already have an enriched CSV and want to merge it with the Clay export in the same folder without rerunning enrichment.
+    </div>
+
+    <div class="field">
+      <label for="manual_merge_folder">Folder path</label>
+      <input type="text" id="manual_merge_folder" placeholder="H:\\Shared drives\\...\\Trovisco v2" />
+      <div class="hint">This folder should contain the Clay export (usually <code>find-people*.csv</code>) and one or more enriched outputs.</div>
+    </div>
+
+    <div style="display:flex; gap:0.75rem; align-items:center; margin-top:0.25rem;">
+      <button type="button" class="btn-primary" id="manual_merge_load_btn" disabled>Load files</button>
+      <button type="button" class="btn-primary" id="manual_merge_run_btn" disabled>Merge now</button>
+      <a href="/download_merged_clay" id="manual_merge_download_link" class="hint" style="display:none; color:#93c5fd; text-decoration:underline;">Download merged CSV</a>
+    </div>
+
+    <div class="field" style="margin-top:0.85rem;">
+      <label for="manual_merge_enriched_select">Enriched file</label>
+      <select id="manual_merge_enriched_select" style="width:100%; padding:0.45rem 0.6rem; border-radius:0.4rem; border:1px solid #1f2937; background:#020617; color:#e5e7eb; font-size:0.9rem; box-sizing:border-box;" disabled>
+        <option value="">(load files first)</option>
+      </select>
+      <div class="hint">Pick which enriched output to merge (useful when you have multiple enriched files in the folder).</div>
+    </div>
+
+    <div class="field">
+      <label for="manual_merge_clay_select">Clay file (optional)</label>
+      <select id="manual_merge_clay_select" style="width:100%; padding:0.45rem 0.6rem; border-radius:0.4rem; border:1px solid #1f2937; background:#020617; color:#e5e7eb; font-size:0.9rem; box-sizing:border-box;" disabled>
+        <option value="">(auto-detect)</option>
+      </select>
+      <div class="hint">If left blank, the server will auto-detect the Clay export.</div>
+    </div>
+
+    <div class="field">
+      <label for="manual_merge_status">Status</label>
+      <pre id="manual_merge_status"><code>Idle</code></pre>
+    </div>
+  </div>
+
+  {% if result is not none %}
+  <div class="card">
+    {% if result.ok %}
+      <div class="status-ok">Enrichment completed successfully.</div>
+      <p class="hint">Input: <code>{{ result.input }}</code></p>
+      <p class="hint">Output: <code>{{ result.output }}</code></p>
+      <p class="hint">Rows in: {{ result.count_in }} | Rows out: {{ result.count_out }}</p>
+    {% else %}
+      <div class="status-error">Enrichment failed.</div>
+      {% if result.error %}
+        <p class="hint">Error: {{ result.error }}</p>
+      {% endif %}
+    {% endif %}
+    <details style="margin-top:0.75rem;">
+      <summary style="cursor:pointer; font-size:0.8rem; color:#9ca3af;">Raw summary</summary>
+      <pre><code>{{ result | tojson(indent=2) }}</code></pre>
+    </details>
+  </div>
+
+  <script>
+    // Add confirmation dialog before form submission
+    (function() {
+      var form = document.querySelector('form[action="/enrich"]');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          var inputFile = document.getElementById('input_file');
+          var inputCsv = document.getElementById('input_csv');
+          var hasFile = inputFile && inputFile.files && inputFile.files.length > 0;
+          var hasPath = inputCsv && inputCsv.value.trim();
+          
+          if (hasFile || hasPath) {
+            var confirmed = confirm('Are you sure you want to start a new enrichment search? This will use SignalHire API credits.');
+            if (!confirmed) {
+              e.preventDefault();
+              return false;
+            }
+          }
+        });
+      }
+    })();
+
+    // Notify parent dashboard to switch to the Dashboard tab when enrichment completes
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: 'enrichment-complete' }, '*');
+      } catch (e) {
+        console.error('Error sending postMessage to parent', e);
+      }
+    }
+
+    // Enable and wire up the "Merge with Clay" button after a successful run,
+    // and color both buttons green once their actions have succeeded.
+    (function() {
+      var mergeBtn = document.getElementById('merge_clay_btn');
+      var runBtn = document.getElementById('run_enrichment_btn');
+      if (!mergeBtn) return;
+
+      var runWasOk = {% if result and result.ok %}true{% else %}false{% endif %};
+      if (!runWasOk) {
+        mergeBtn.disabled = true;
+        return;
+      }
+
+      mergeBtn.disabled = false;
+
+      // If enrichment has completed successfully, also show the Run button
+      // in the success (green) state so both actions read as "ok".
+      if (runBtn) {
+        runBtn.classList.remove('btn-primary');
+        runBtn.classList.add('btn-success');
+      }
+
+      mergeBtn.addEventListener('click', function() {
+        if (mergeBtn.disabled) return;
+        mergeBtn.disabled = true; // prevent double-clicks
+        mergeBtn.textContent = 'Merging...';
+
+        fetch('/merge_clay', { method: 'POST' })
+          .then(function(resp) { return resp.json(); })
+          .then(function(data) {
+            if (data && data.ok) {
+              mergeBtn.classList.remove('btn-primary');
+              mergeBtn.classList.add('btn-success');
+              mergeBtn.textContent = 'Merged with Clay';
+              // Show success briefly, then grey out to indicate completion.
+              setTimeout(function() {
+                mergeBtn.disabled = true;
+              }, 1500);
+            } else {
+              mergeBtn.disabled = false;
+              mergeBtn.textContent = 'Merge with Clay';
+              if (data && data.error) {
+                alert('Clay merge error: ' + data.error);
+              } else {
+                alert('Clay merge failed for an unknown reason.');
+              }
+            }
+          })
+          .catch(function(err) {
+            mergeBtn.disabled = false;
+            mergeBtn.textContent = 'Merge with Clay';
+            alert('Clay merge error: ' + err);
+          });
+      });
+    })();
+  </script>
+  {% endif %}
+
+  <script>
+    (function() {
+      var folderInput = document.getElementById('manual_merge_folder');
+      var loadBtn = document.getElementById('manual_merge_load_btn');
+      var runBtn = document.getElementById('manual_merge_run_btn');
+      var enrichedSelect = document.getElementById('manual_merge_enriched_select');
+      var claySelect = document.getElementById('manual_merge_clay_select');
+      var statusPre = document.getElementById('manual_merge_status');
+      var downloadLink = document.getElementById('manual_merge_download_link');
+
+      if (!folderInput || !loadBtn || !runBtn || !enrichedSelect || !claySelect || !statusPre) return;
+
+      function updateLoadEnabled() {
+        var folder = (folderInput.value || '').trim();
+        loadBtn.disabled = !folder;
+      }
+
+      folderInput.addEventListener('input', updateLoadEnabled);
+      updateLoadEnabled();
+
+      function updateRunEnabled() {
+        var enrichedFilename = (enrichedSelect.value || '').trim();
+        runBtn.disabled = !enrichedFilename;
+      }
+
+      enrichedSelect.addEventListener('change', updateRunEnabled);
+      updateRunEnabled();
+
+      function setStatus(text) {
+        statusPre.innerHTML = '<code>' + String(text) + '</code>';
+      }
+
+      function setOptions(selectEl, options, placeholder) {
+        while (selectEl.firstChild) selectEl.removeChild(selectEl.firstChild);
+        var ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = placeholder;
+        selectEl.appendChild(ph);
+        (options || []).forEach(function(name) {
+          var opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          selectEl.appendChild(opt);
+        });
+      }
+
+      loadBtn.addEventListener('click', function() {
+        var folder = (folderInput.value || '').trim();
+        downloadLink.style.display = 'none';
+        runBtn.disabled = true;
+        runBtn.classList.remove('btn-success');
+        runBtn.classList.add('btn-primary');
+        enrichedSelect.disabled = true;
+        claySelect.disabled = true;
+        setStatus('Loading candidates...');
+
+        if (!folder) {
+          setStatus('Please provide a folder path.');
+          return;
+        }
+
+        fetch('/merge_clay_candidates?folder=' + encodeURIComponent(folder))
+          .then(function(resp) { return resp.json(); })
+          .then(function(data) {
+            if (!data || !data.ok) {
+              setStatus((data && data.error) ? data.error : 'Failed to load candidates.');
+              return;
+            }
+
+            setOptions(enrichedSelect, data.enriched_candidates || [], '(select enriched file)');
+            setOptions(claySelect, data.clay_candidates || [], '(auto-detect)');
+            enrichedSelect.disabled = false;
+            claySelect.disabled = false;
+            updateRunEnabled();
+            setStatus('Loaded. Select an enriched file and click Merge now.');
+          })
+          .catch(function(err) {
+            setStatus('Error loading candidates: ' + err);
+          });
+      });
+
+      runBtn.addEventListener('click', function() {
+        var folder = (folderInput.value || '').trim();
+        var enrichedFilename = (enrichedSelect.value || '').trim();
+        var clayFilename = (claySelect.value || '').trim();
+        downloadLink.style.display = 'none';
+
+        if (!folder) {
+          setStatus('Please provide a folder path.');
+          return;
+        }
+        if (!enrichedFilename) {
+          setStatus('Please select an enriched file.');
+          return;
+        }
+
+        runBtn.disabled = true;
+        setStatus('Merging...');
+
+        fetch('/merge_clay_manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            folder: folder,
+            enriched_filename: enrichedFilename,
+            clay_filename: clayFilename
+          })
+        })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+          runBtn.disabled = false;
+          if (data && data.ok) {
+            runBtn.classList.remove('btn-primary');
+            runBtn.classList.add('btn-success');
+            var report = data.merge_report || null;
+            var warnParts = [];
+            if (report && typeof report === 'object') {
+              if (report.unmatched_rows && report.unmatched_rows > 0) {
+                warnParts.push('Unmatched rows: ' + report.unmatched_rows);
+              }
+              if (report.ambiguous_name_rows && report.ambiguous_name_rows > 0) {
+                warnParts.push('Ambiguous name rows: ' + report.ambiguous_name_rows);
+              }
+            }
+            if (warnParts.length) {
+              setStatus('Merged with warnings. ' + warnParts.join(' | ') + ' | Output: ' + data.merged_path);
+            } else {
+              setStatus('Merged OK: ' + data.merged_path);
+            }
+            downloadLink.style.display = 'inline';
+            // Grey out after showing success briefly.
+            setTimeout(function() {
+              runBtn.disabled = true;
+            }, 1500);
+          } else {
+            setStatus((data && data.error) ? data.error : 'Merge failed.');
+          }
+        })
+        .catch(function(err) {
+          runBtn.disabled = false;
+          setStatus('Merge error: ' + err);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

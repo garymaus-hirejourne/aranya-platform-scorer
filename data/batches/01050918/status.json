@@ -1,0 +1,15 @@
+{
+  "batch_id": "01050918",
+  "stage": "complete",
+  "status": "complete",
+  "input": "uploads\\webhook_test.csv",
+  "output_final": "data/batches/01050918/results.csv",
+  "started_at": "2026-03-01T12:39:01.051000",
+  "batch_size": 50,
+  "timeout": 900,
+  "poll_interval": 20,
+  "pending": [],
+  "received": 1,
+  "output": "DEBUG: Running signalhire_enrich.py from aranya-platform-scorer (v2.3.1)\r\nLoaded 1 identifiers from uploads\\webhook_test.csv.\r\nSubmitted batch; response: {\"requestId\":127555019}\r\nDone. Submitted 1 items.\r\n",
+  "note": "Webhook received but couldn't find batch (request mapping not saved). Manually completed. SignalHire returned status:failed for profile (no contact data available)."
+}

@@ -1,0 +1,12 @@
+{
+  "batch_id": "55973287",
+  "stage": "error_timeout",
+  "input": "uploads\\webhook_test.csv",
+  "output_final": "",
+  "started_at": "2026-03-01T08:42:55.973350",
+  "batch_size": 50,
+  "timeout": 900,
+  "poll_interval": 20,
+  "output": "DEBUG: Running signalhire_enrich.py from aranya-platform-scorer (v2.3.1)\r\nLoaded 1 identifiers from uploads\\webhook_test.csv.\r\nSubmitted batch; response: {\"requestId\":127549785}\r\nDone. Submitted 1 items.\r\n",
+  "error": "Auto-timed out after 948s (timeout: 900s)"
+}

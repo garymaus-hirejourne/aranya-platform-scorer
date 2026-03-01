@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Candidate Search (GitHub Scoring)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:1.5rem; }
+    h1 { font-size:1.6rem; margin-bottom:0.25rem; }
+    .subhead { color:#9ca3af; margin-bottom:1.25rem; }
+    .card { max-width:900px; background:#020617; border-radius:0.75rem; border:1px solid #1f2937; padding:1.25rem 1.5rem; margin-bottom:1.5rem; }
+    label { display:block; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.08em; color:#9ca3af; margin-bottom:0.25rem; }
+    select, input[type="text"] { width:100%; padding:0.45rem 0.6rem; border-radius:0.4rem; border:1px solid #1f2937; background:#020617; color:#e5e7eb; font-size:0.9rem; box-sizing:border-box; }
+    select:focus, input[type="text"]:focus { outline:none; border-color:#22c55e; }
+    .field { margin-bottom:0.8rem; }
+    .hint { font-size:0.75rem; color:#6b7280; margin-top:0.15rem; }
+    button { border:none; border-radius:999px; padding:0.45rem 1.1rem; font-size:0.9rem; font-weight:600; cursor:pointer; }
+    .btn-primary { background:#2563eb; color:#e5e7eb; }
+    .btn-primary:hover { background:#1d4ed8; }
+    button[disabled] { background:#4b5563; color:#9ca3af; cursor:not-allowed; }
+    code { background:#020617; padding:0.15rem 0.3rem; border-radius:0.25rem; font-size:0.78rem; border:1px solid #1f2937; color:#e5e7eb; }
+    .status-row { display:flex; gap:0.8rem; flex-wrap:wrap; align-items:center; }
+    .pill { display:inline-flex; align-items:center; gap:0.4rem; padding:0.15rem 0.6rem; border-radius:999px; font-size:0.78rem; background:#111827; border:1px solid #1f2937; }
+    .dot { width:0.55rem; height:0.55rem; border-radius:999px; background:#eab308; }
+    .dot.running { background:#22c55e; }
+    .dot.error { background:#ef4444; }
+    a { color:#93c5fd; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border:1px solid #1f2937; padding:0.5rem; vertical-align:top; }
+    th { font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:#9ca3af; background:#0b1220; }
+    td { background:#020617; }
+    input[type="number"], textarea { width:100%; padding:0.4rem 0.5rem; border-radius:0.4rem; border:1px solid #1f2937; background:#020617; color:#e5e7eb; font-size:0.85rem; box-sizing:border-box; }
+    textarea { min-height:3.5rem; resize:vertical; }
+    .bar-row { display:flex; align-items:center; gap:0.6rem; margin:0.3rem 0; }
+    .bar-label { width:240px; font-size:0.8rem; color:#e5e7eb; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bar-track { flex:1; height:10px; background:#111827; border:1px solid #1f2937; border-radius:999px; overflow:hidden; }
+    .bar-fill { height:100%; background:#22c55e; }
+    .bar-val { width:52px; text-align:right; font-size:0.8rem; color:#9ca3af; }
+  </style>
+</head>
+<body>
+  <h1>Candidate Search (GitHub → Scored CSV)</h1>
+  <div class="subhead">Run GitHub sourcing + scoring for a role rubric, then download the scored CSV. (PDF → rubric editor comes next.)</div>
+
+  <div class="card">
+    <form method="post" action="/candidate-search" id="candidate_form" enctype="multipart/form-data">
+      <div class="field">
+        <label for="job_profile_id">Job Profile</label>
+        <select id="job_profile_id" name="job_profile_id">
+          <option value="" selected>Select a job profile...</option>
+          <option value="__new__">NEW (upload PDF)</option>
+          {% for jp in job_profiles or [] %}
+            <option value="{{ jp.id }}">{{ jp.name }}{% if jp.kind == 'uploaded' %} (PDF){% endif %}</option>
+          {% endfor %}
+        </select>
+        <div class="hint">Pick an existing job profile, or upload a new PDF below. Rubric generation from PDF is coming next.</div>
+      </div>
+
+      <div class="field">
+        <label for="job_profile_pdf">Upload new job profile (PDF)</label>
+        <input type="file" id="job_profile_pdf" name="job_profile_pdf" accept="application/pdf" />
+      </div>
+
+      <input type="hidden" id="role" name="role" value="" />
+      <input type="hidden" id="intent" name="intent" value="" />
+
+      <div class="field">
+        <label for="max_profiles">Max candidates</label>
+        <select id="max_profiles" name="max_profiles" required>
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+        <div class="hint">Output is deduped and sorted by Overall Score (high → low).</div>
+      </div>
+
+      <div class="field">
+        <label for="outmarket_root">Outmarket sourcer path (optional)</label>
+        <input type="text" id="outmarket_root" name="outmarket_root" placeholder="C:\\Users\\gary_\\Github-Repositories\\outmarket-ai-sourcer" />
+        <div class="hint">If blank, uses server default.</div>
+      </div>
+
+      <input type="hidden" id="rubric_json" name="rubric_json" value="" />
+
+      <div class="field" style="margin-top:1rem;" id="rubric_block">
+        <label>Rubric (editable; auto-keeps total weight = 100)</label>
+        <div class="hint">Changing a weight will automatically rebalance the rows below to keep the total at 100. Max Score auto-syncs to Weight.</div>
+        <div style="margin-top:0.6rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+          <span class="pill">Total Weight: <code id="rubric_total">100</code></span>
+          <span class="pill">Max Score Total: <code id="rubric_max_total">100</code></span>
+        </div>
+
+        <div style="margin-top:0.6rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn-primary" id="save_rubric_btn" disabled>Save rubric</button>
+        </div>
+
+        <div style="margin-top:0.6rem; display:flex; gap:0.9rem; flex-wrap:wrap; align-items:center;">
+          <a href="/download_candidate_rubric_json" style="font-size:0.85rem;">Download latest rubric (JSON)</a>
+          <a href="/download_candidate_rubric_csv" style="font-size:0.85rem;">Download latest rubric (CSV)</a>
+        </div>
+
+        <div style="margin-top:0.75rem;">
+          <div class="hint" style="margin-bottom:0.35rem;">Weight chart</div>
+          <div id="rubric_chart" style="background:#0b1220;border:1px solid #1f2937;border-radius:0.5rem;padding:0.75rem;"></div>
+        </div>
+
+        <div style="margin-top:0.75rem; overflow:auto;">
+          <table id="rubric_table">
+            <thead>
+              <tr>
+                <th style="min-width:220px;">Dimension</th>
+                <th style="width:110px;">Weight %</th>
+                <th style="width:110px;">Max Score</th>
+                <th style="min-width:240px;">Evidence Examples</th>
+                <th style="min-width:260px;">Scoring Guidelines</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:0.75rem; display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+        <button type="submit" class="btn-primary" id="upload_btn" data-intent="upload" formnovalidate>Upload job profile</button>
+        <button type="submit" class="btn-primary" id="run_btn" data-intent="run" disabled>Run candidate search</button>
+        <a href="/candidate-search" style="font-size:0.85rem;">Refresh</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div style="font-size:0.9rem; font-weight:600; margin-bottom:0.6rem;">Latest run status</div>
+    <div class="status-row">
+      <span class="pill"><span class="dot {{ 'running' if status.get('stage') == 'running' else ('error' if status.get('stage', '').startswith('error') else '') }}"></span>{{ status.get('stage', 'idle') }}</span>
+      <span class="pill">Role: <code>{{ status.get('role', 'n/a') }}</code></span>
+      <span class="pill">Max: <code>{{ status.get('max_profiles', 'n/a') }}</code></span>
+    </div>
+    <div class="hint" data-status-message style="margin-top:0.6rem;color:#bbf7d0;">{{ status.get('message', '') }}</div>
+    {% if status.error %}
+      <div class="hint" style="margin-top:0.6rem;color:#fecaca;">Error: {{ status.error }}</div>
+    {% endif %}
+    {% if status.output_path %}
+      <div class="hint" style="margin-top:0.6rem;">Output: <code>{{ status.output_path }}</code></div>
+      {% if status.stage == 'completed_ok' %}
+        <div style="margin-top:0.75rem;">
+          <a href="/download_candidate_csv" target="_blank" rel="noopener">Download CSV</a>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {% if status.log %}
+      <div style="margin-top:0.9rem;">
+        <div class="hint" style="margin-bottom:0.35rem;">Live log (GitHub sourcing + scoring)</div>
+        <pre style="white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;background:#0b1220;border:1px solid #1f2937;border-radius:0.5rem;padding:0.75rem;line-height:1.25;font-size:0.78rem;">{{ status.log }}</pre>
+      </div>
+    {% endif %}
+  </div>
+
+  <script id="default_rubrics_json" type="application/json">{{ (default_rubrics or {}) | tojson }}</script>
+  <script id="server_status_json" type="application/json">{{ (status or {}) | tojson }}</script>
+
+  <script>
+    const DEFAULT_RUBRICS = JSON.parse(document.getElementById('default_rubrics_json').textContent || '{}');
+    let ACTIVE_UPLOADED_PROFILE_ID = '';
+
+    function parseIntSafe(v, fallback) {
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function clamp(n, lo, hi) {
+      return Math.max(lo, Math.min(hi, n));
+    }
+
+    function currentRows() {
+      const tbody = document.querySelector('#rubric_table tbody');
+      return Array.from(tbody.querySelectorAll('tr'));
+    }
+
+    function recalcTotals() {
+      const rows = currentRows();
+      let total = 0;
+      let maxTotal = 0;
+      for (const tr of rows) {
+        const w = parseIntSafe(tr.querySelector('input[data-field="weight"]').value, 0);
+        total += w;
+        maxTotal += w;
+        tr.querySelector('[data-field="max"]').textContent = String(w);
+      }
+      document.getElementById('rubric_total').textContent = String(total);
+      document.getElementById('rubric_max_total').textContent = String(maxTotal);
+      renderChart();
+      return { total, maxTotal };
+    }
+
+    function renderChart() {
+      const el = document.getElementById('rubric_chart');
+      if (!el) return;
+      const rows = currentRows();
+      const items = rows.map((tr) => {
+        const dimension = (tr.querySelector('[data-field="dimension"]').value || '').trim();
+        const weight = parseIntSafe(tr.querySelector('[data-field="weight"]').value, 0);
+        return { dimension, weight };
+      }).filter(it => it.dimension);
+
+      items.sort((a, b) => b.weight - a.weight);
+
+      if (!items.length) {
+        el.textContent = 'No rubric rows.';
+        return;
+      }
+
+      el.innerHTML = '';
+      for (const it of items) {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.title = it.dimension;
+        label.textContent = it.dimension;
+
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = Math.max(0, Math.min(100, it.weight)) + '%';
+        track.appendChild(fill);
+
+        const val = document.createElement('div');
+        val.className = 'bar-val';
+        val.textContent = it.weight + '%';
+
+        row.appendChild(label);
+        row.appendChild(track);
+        row.appendChild(val);
+        el.appendChild(row);
+      }
+    }
+
+    function rebalanceFromIndex(changedIndex, oldValue, newValue) {
+      const rows = currentRows();
+      const delta = newValue - oldValue;
+      if (delta === 0) return;
+
+      let remaining = delta;
+      // If delta is positive, we need to subtract from following rows.
+      // If delta is negative, we need to add to following rows.
+      for (let i = changedIndex + 1; i < rows.length && remaining !== 0; i++) {
+        const inp = rows[i].querySelector('input[data-field="weight"]');
+        const cur = parseIntSafe(inp.value, 0);
+
+        if (remaining > 0) {
+          const take = Math.min(cur, remaining);
+          inp.value = String(cur - take);
+          remaining -= take;
+        } else {
+          // remaining < 0, we need to add -remaining
+          const add = -remaining;
+          inp.value = String(cur + add);
+          remaining = 0;
+        }
+      }
+
+      // If we couldn't fully take from later rows (because they hit 0), clamp the changed value back down.
+      if (remaining > 0) {
+        const actualNew = newValue - remaining;
+        const changedInp = rows[changedIndex].querySelector('input[data-field="weight"]');
+        changedInp.value = String(Math.max(0, actualNew));
+      }
+
+      // Final correction: enforce sum exactly 100 by adjusting the last row.
+      const totals = recalcTotals();
+      const drift = 100 - totals.total;
+      if (rows.length > 0 && drift !== 0) {
+        const last = rows[rows.length - 1].querySelector('input[data-field="weight"]');
+        const cur = parseIntSafe(last.value, 0);
+        last.value = String(Math.max(0, cur + drift));
+      }
+      recalcTotals();
+    }
+
+    function renderRubricFromDimensions(dimensions) {
+      const tbody = document.querySelector('#rubric_table tbody');
+      tbody.innerHTML = '';
+      const dims = Array.isArray(dimensions) ? dimensions : [];
+      for (const d of dims) {
+        const tr = document.createElement('tr');
+
+        const dimension = document.createElement('td');
+        const dimInp = document.createElement('input');
+        dimInp.type = 'text';
+        dimInp.value = d.dimension || '';
+        dimInp.setAttribute('data-field', 'dimension');
+        dimension.appendChild(dimInp);
+
+        const weight = document.createElement('td');
+        const wInp = document.createElement('input');
+        wInp.type = 'number';
+        wInp.min = '0';
+        wInp.max = '100';
+        wInp.step = '1';
+        wInp.value = String(parseIntSafe(d.weight_pct, 0));
+        wInp.setAttribute('data-field', 'weight');
+        weight.appendChild(wInp);
+
+        const maxScore = document.createElement('td');
+        const maxSpan = document.createElement('div');
+        maxSpan.setAttribute('data-field', 'max');
+        maxSpan.style.paddingTop = '0.4rem';
+        maxSpan.textContent = wInp.value;
+        maxScore.appendChild(maxSpan);
+
+        const evidence = document.createElement('td');
+        const eTa = document.createElement('textarea');
+        eTa.value = d.evidence_examples || '';
+        eTa.setAttribute('data-field', 'evidence');
+        evidence.appendChild(eTa);
+
+        const guidelines = document.createElement('td');
+        const gTa = document.createElement('textarea');
+        gTa.value = d.scoring_guidelines || '';
+        gTa.setAttribute('data-field', 'guidelines');
+        guidelines.appendChild(gTa);
+
+        tr.appendChild(dimension);
+        tr.appendChild(weight);
+        tr.appendChild(maxScore);
+        tr.appendChild(evidence);
+        tr.appendChild(guidelines);
+        tbody.appendChild(tr);
+      }
+
+      // Attach weight balancing.
+      const rows = currentRows();
+      rows.forEach((tr, idx) => {
+        const w = tr.querySelector('input[data-field="weight"]');
+        w.addEventListener('focus', () => {
+          w.setAttribute('data-prev', w.value);
+        });
+        w.addEventListener('change', () => {
+          const prev = parseIntSafe(w.getAttribute('data-prev'), parseIntSafe(w.value, 0));
+          const next = clamp(parseIntSafe(w.value, prev), 0, 100);
+          w.value = String(next);
+          rebalanceFromIndex(idx, prev, next);
+          w.setAttribute('data-prev', w.value);
+        });
+      });
+
+      // Ensure exact sum 100.
+      recalcTotals();
+      const totals = recalcTotals();
+      const drift = 100 - totals.total;
+      const finalRows = currentRows();
+      if (finalRows.length > 0 && drift !== 0) {
+        const last = finalRows[finalRows.length - 1].querySelector('input[data-field="weight"]');
+        last.value = String(Math.max(0, parseIntSafe(last.value, 0) + drift));
+      }
+      recalcTotals();
+    }
+
+    function renderRubric(role) {
+      const dims = (DEFAULT_RUBRICS && DEFAULT_RUBRICS[role]) ? DEFAULT_RUBRICS[role] : [];
+      const tbody = document.querySelector('#rubric_table tbody');
+      tbody.innerHTML = '';
+
+      for (const d of dims) {
+        const tr = document.createElement('tr');
+
+        const dimension = document.createElement('td');
+        const dimInp = document.createElement('input');
+        dimInp.type = 'text';
+        dimInp.value = d.dimension || '';
+        dimInp.setAttribute('data-field', 'dimension');
+        dimension.appendChild(dimInp);
+
+        const weight = document.createElement('td');
+        const wInp = document.createElement('input');
+        wInp.type = 'number';
+        wInp.min = '0';
+        wInp.max = '100';
+        wInp.step = '1';
+        wInp.value = String(parseIntSafe(d.weight_pct, 0));
+        wInp.setAttribute('data-field', 'weight');
+        weight.appendChild(wInp);
+
+        const maxScore = document.createElement('td');
+        const maxSpan = document.createElement('div');
+        maxSpan.setAttribute('data-field', 'max');
+        maxSpan.style.paddingTop = '0.4rem';
+        maxSpan.textContent = wInp.value;
+        maxScore.appendChild(maxSpan);
+
+        const evidence = document.createElement('td');
+        const eTa = document.createElement('textarea');
+        eTa.value = d.evidence_examples || '';
+        eTa.setAttribute('data-field', 'evidence');
+        evidence.appendChild(eTa);
+
+        const guidelines = document.createElement('td');
+        const gTa = document.createElement('textarea');
+        gTa.value = d.scoring_guidelines || '';
+        gTa.setAttribute('data-field', 'guidelines');
+        guidelines.appendChild(gTa);
+
+        tr.appendChild(dimension);
+        tr.appendChild(weight);
+        tr.appendChild(maxScore);
+        tr.appendChild(evidence);
+        tr.appendChild(guidelines);
+        tbody.appendChild(tr);
+      }
+
+      // Attach change handlers after rendering.
+      const rows = currentRows();
+      rows.forEach((tr, idx) => {
+        const w = tr.querySelector('input[data-field="weight"]');
+        w.addEventListener('focus', () => {
+          w.setAttribute('data-prev', w.value);
+        });
+        w.addEventListener('change', () => {
+          const prev = parseIntSafe(w.getAttribute('data-prev'), parseIntSafe(w.value, 0));
+          const next = clamp(parseIntSafe(w.value, prev), 0, 100);
+          w.value = String(next);
+          rebalanceFromIndex(idx, prev, next);
+          w.setAttribute('data-prev', w.value);
+        });
+      });
+
+      // Ensure exact total 100 by adjusting last row.
+      recalcTotals();
+      const totals = recalcTotals();
+      const drift = 100 - totals.total;
+      const finalRows = currentRows();
+      if (finalRows.length > 0 && drift !== 0) {
+        const last = finalRows[finalRows.length - 1].querySelector('input[data-field="weight"]');
+        last.value = String(Math.max(0, parseIntSafe(last.value, 0) + drift));
+      }
+      recalcTotals();
+    }
+
+    function buildRubricJson() {
+      const role = document.getElementById('role').value;
+      const rows = currentRows();
+      const dimensions = rows.map((tr) => {
+        const dimension = (tr.querySelector('[data-field="dimension"]').value || '').trim();
+        const weight = parseIntSafe(tr.querySelector('[data-field="weight"]').value, 0);
+        const evidence = tr.querySelector('[data-field="evidence"]').value || '';
+        const guidelines = tr.querySelector('[data-field="guidelines"]').value || '';
+        return {
+          dimension,
+          weight_pct: weight,
+          max_score: weight,
+          evidence_examples: evidence,
+          scoring_guidelines: guidelines,
+        };
+      }).filter(d => d.dimension);
+
+      return {
+        role,
+        dimensions,
+      };
+    }
+
+    function setRubricEnabled(enabled) {
+      const block = document.getElementById('rubric_block');
+      const runBtn = document.getElementById('run_btn');
+      if (enabled) {
+        block.style.display = '';
+        runBtn.disabled = false;
+      } else {
+        block.style.display = 'none';
+        runBtn.disabled = true;
+      }
+    }
+
+    document.getElementById('job_profile_id').addEventListener('change', (e) => {
+      const v = (e.target.value || '').trim();
+      if (v.startsWith('builtin::')) {
+        ACTIVE_UPLOADED_PROFILE_ID = '';
+        const saveBtn = document.getElementById('save_rubric_btn');
+        if (saveBtn) saveBtn.disabled = true;
+        const role = v.split('::', 2)[1];
+        document.getElementById('role').value = role;
+        renderRubric(role);
+        setRubricEnabled(true);
+        document.getElementById('run_btn').disabled = false;
+      } else {
+        document.getElementById('role').value = '';
+        // Uploaded profile: fetch rubric if available. If rubric exists, allow running with --rubric.
+        document.getElementById('run_btn').disabled = true;
+        ACTIVE_UPLOADED_PROFILE_ID = v && v !== '__new__' ? v : '';
+        if (!v || v === '__new__') {
+          setRubricEnabled(false);
+          const saveBtn = document.getElementById('save_rubric_btn');
+          if (saveBtn) saveBtn.disabled = true;
+          return;
+        }
+        fetch('/job-profile/' + encodeURIComponent(v))
+          .then(r => r.json())
+          .then((meta) => {
+            const gen = meta && meta.generation ? meta.generation : null;
+            if (gen && gen.status === 'error') {
+              setRubricEnabled(false);
+              alert('Rubric generation failed for this PDF: ' + (gen.error || 'unknown error'));
+              return;
+            }
+            const rubric = meta && meta.rubric ? meta.rubric : null;
+            const dims = rubric && rubric.dimensions ? rubric.dimensions : [];
+            if (dims && dims.length) {
+              renderRubricFromDimensions(dims);
+              // Show rubric editor and allow Run (backend will run with --rubric).
+              const block = document.getElementById('rubric_block');
+              block.style.display = '';
+              document.getElementById('role').value = 'custom';
+              document.getElementById('run_btn').disabled = false;
+              const saveBtn = document.getElementById('save_rubric_btn');
+              if (saveBtn) saveBtn.disabled = false;
+            } else {
+              setRubricEnabled(false);
+              const saveBtn = document.getElementById('save_rubric_btn');
+              if (saveBtn) saveBtn.disabled = true;
+            }
+          })
+          .catch(() => {
+            setRubricEnabled(false);
+            const saveBtn = document.getElementById('save_rubric_btn');
+            if (saveBtn) saveBtn.disabled = true;
+          });
+      }
+    });
+
+    document.getElementById('save_rubric_btn').addEventListener('click', () => {
+      if (!ACTIVE_UPLOADED_PROFILE_ID) {
+        alert('Select an uploaded Job Profile first.');
+        return;
+      }
+      const totals = recalcTotals();
+      if (totals.total !== 100) {
+        alert('Rubric weights must sum to 100 before saving. Current total: ' + totals.total);
+        return;
+      }
+      const payload = buildRubricJson();
+      const dims = payload && payload.dimensions ? payload.dimensions : [];
+      fetch('/job-profile/' + encodeURIComponent(ACTIVE_UPLOADED_PROFILE_ID) + '/rubric', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dimensions: dims }),
+      })
+        .then(r => r.json())
+        .then((resp) => {
+          if (!resp || resp.error) {
+            alert('Save failed: ' + (resp && resp.error ? resp.error : 'unknown error'));
+            return;
+          }
+          const msgNode = document.querySelector('[data-status-message]') || document.querySelector('.hint');
+          if (msgNode) msgNode.textContent = 'Rubric saved.';
+          if (resp && resp.dimensions && resp.dimensions.length) {
+            renderRubricFromDimensions(resp.dimensions);
+          }
+        })
+        .catch(() => {
+          alert('Save failed: network error');
+        });
+    });
+
+    document.getElementById('upload_btn').addEventListener('click', () => {
+      document.getElementById('intent').value = 'upload';
+    });
+
+    document.getElementById('run_btn').addEventListener('click', () => {
+      document.getElementById('intent').value = 'run';
+    });
+
+    document.getElementById('candidate_form').addEventListener('submit', (e) => {
+      const intent = (document.getElementById('intent').value || '').trim();
+      if (intent === 'upload') {
+        const uploadBtn = document.getElementById('upload_btn');
+        const fileInput = document.getElementById('job_profile_pdf');
+        if (!fileInput || !fileInput.files || !fileInput.files.length) {
+          e.preventDefault();
+          alert('Choose a PDF file to upload.');
+        }
+        if (uploadBtn && !e.defaultPrevented) {
+          uploadBtn.disabled = true;
+          uploadBtn.textContent = 'Uploading...';
+        }
+        return;
+      }
+      const totals = recalcTotals();
+      if (totals.total !== 100) {
+        e.preventDefault();
+        alert('Rubric weights must sum to 100 before running. Current total: ' + totals.total);
+        return;
+      }
+      const payload = buildRubricJson();
+      document.getElementById('rubric_json').value = JSON.stringify(payload);
+    });
+
+    // initial render
+    setRubricEnabled(false);
+
+    (function () {
+      let serverStatus = {};
+      try {
+        const raw = document.getElementById('server_status_json').textContent || '{}';
+        serverStatus = JSON.parse(raw);
+      } catch (e) {
+        serverStatus = {};
+      }
+
+      const pid = serverStatus && serverStatus.profile_id ? String(serverStatus.profile_id) : '';
+      if (!pid) return;
+
+      const profileSelect = document.getElementById('job_profile_id');
+      if (profileSelect) {
+        const exists = Array.from(profileSelect.options || []).some(o => String(o.value) === pid);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = pid;
+          opt.textContent = 'New upload (processing)';
+          profileSelect.appendChild(opt);
+        }
+        profileSelect.value = pid;
+      }
+
+      const uploadBtn = document.getElementById('upload_btn');
+      const saveBtn = document.getElementById('save_rubric_btn');
+      const msgNode = document.querySelector('[data-status-message]') || document.querySelector('.hint');
+
+      function setMsg(txt) {
+        if (msgNode) msgNode.textContent = txt;
+      }
+
+      let tries = 0;
+      const maxTries = 60;
+
+      function poll() {
+        tries += 1;
+        fetch('/job-profile/' + encodeURIComponent(pid))
+          .then(r => r.json())
+          .then((meta) => {
+            const gen = meta && meta.generation ? meta.generation : null;
+            const st = gen && gen.status ? gen.status : '';
+
+            if (st === 'ok') {
+              if (uploadBtn) {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload job profile';
+              }
+              setMsg('Rubric generated: ' + (meta.name || pid));
+
+              const rubric = meta && meta.rubric ? meta.rubric : null;
+              const dims = rubric && rubric.dimensions ? rubric.dimensions : [];
+              if (dims && dims.length) {
+                renderRubricFromDimensions(dims);
+                const block = document.getElementById('rubric_block');
+                block.style.display = '';
+                ACTIVE_UPLOADED_PROFILE_ID = pid;
+                if (saveBtn) saveBtn.disabled = false;
+              }
+              return;
+            }
+
+            if (st === 'error') {
+              if (uploadBtn) {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload job profile';
+              }
+              setMsg('Rubric generation failed: ' + ((gen && gen.error) ? gen.error : 'unknown error'));
+              if (saveBtn) saveBtn.disabled = true;
+              return;
+            }
+
+            setMsg('Generating rubric...');
+            if (saveBtn) saveBtn.disabled = true;
+
+            if (tries < maxTries) {
+              setTimeout(poll, 2000);
+            } else {
+              if (uploadBtn) {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload job profile';
+              }
+              setMsg('Rubric generation is taking longer than expected. Check server logs.');
+            }
+          })
+          .catch(() => {
+            if (tries < maxTries) setTimeout(poll, 2000);
+          });
+      }
+
+      poll();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Discovery (Clay.com)</title>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0f172a; color:#e5e7eb; margin:0; padding:1.5rem; }
+        h1 { font-size:1.6rem; margin-bottom:0.25rem; }
+        .subhead { color:#9ca3af; margin-bottom:1.25rem; }
+        .card { max-width:900px; background:#020617; border-radius:0.75rem; border:1px solid #1f2937; padding:1.25rem 1.5rem; margin-bottom:1.5rem; }
+        label { display:block; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.08em; color:#9ca3af; margin-bottom:0.25rem; }
+        select, input[type="text"], input[type="file"] { width:100%; padding:0.45rem 0.6rem; border-radius:0.4rem; border:1px solid #1f2937; background:#020617; color:#e5e7eb; font-size:0.9rem; box-sizing:border-box; }
+        select:focus, input[type="text"]:focus, input[type="file"]:focus { outline:none; border-color:#22c55e; }
+        .field { margin-bottom:1.2rem; }
+        .hint { font-size:0.75rem; color:#6b7280; margin-top:0.15rem; }
+        button { border:none; border-radius:999px; padding:0.45rem 1.1rem; font-size:0.9rem; font-weight:600; cursor:pointer; }
+        .btn-primary { background:#2563eb; color:#e5e7eb; }
+        .btn-primary:hover { background:#1d4ed8; }
+        button[disabled] { background:#4b5563; color:#9ca3af; cursor:not-allowed; }
+        .workflow-step { padding: 1rem; border: 1px solid #1f2937; border-radius: 0.5rem; margin-bottom: 1rem; background: #0b1220; }
+        .workflow-step h3 { margin-top: 0; margin-bottom: 0.5rem; font-size: 1.1rem; color: #e2e8f0; }
+        .workflow-step ol { margin: 0; padding-left: 1.5rem; color: #9ca3af; font-size: 0.9rem; }
+        .workflow-step li { margin-bottom: 0.3rem; }
+        code { background:#020617; padding:0.15rem 0.3rem; border-radius:0.25rem; font-size:0.78rem; border:1px solid #1f2937; color:#e5e7eb; }
+        a { color: #60a5fa; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .search-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .search-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .status-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .help-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 SignalHire Contact Enrichment</h1>
+            <p>Upload LinkedIn URLs and receive enriched contact data via email</p>
+        </div>
+        
+        <div class="form-container">
+            <form id="searchForm" method="POST" action="/upload" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="linkedin_file">📁 Upload CSV File with LinkedIn URLs</label>
+                    <input type="file" id="linkedin_file" name="linkedin_file" accept=".csv" required>
+                    <div class="help-text">Upload a CSV file containing LinkedIn profile URLs</div>
+                    <div class="file-info">
+                        <strong>CSV Format:</strong> Include a column with LinkedIn URLs<br>
+                        <strong>Example:</strong> https://www.linkedin.com/in/john-smith-123
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_email">📧 Email Address for Results</label>
+                    <input type="email" id="user_email" name="user_email" placeholder="your.email@company.com" required>
+                    <div class="help-text">Enriched contact data will be emailed to this address as a CSV file</div>
+                </div>
+                
+                <button type="submit" class="search-button" id="searchBtn">
+                    📧 Enrich LinkedIn Contacts
+                </button>
+            </form>
+            
+            <div class="status-container" id="statusContainer">
+                <div id="statusMessages"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const statusContainer = document.getElementById('statusContainer');
+        const statusMessages = document.getElementById('statusMessages');
+        const progressFill = document.getElementById('progressFill');
+        const searchBtn = document.getElementById('searchBtn');
+        
+        let currentSessionId = null;
+        
+        function showStatus(message, type = 'info') {
+            statusContainer.style.display = 'block';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `status-message status-${type}`;
+            messageDiv.innerHTML = message;
+            statusMessages.appendChild(messageDiv);
+            statusMessages.scrollTop = statusMessages.scrollHeight;
+        }
+        
+        function updateProgress(percentage) {
+            progressFill.style.width = `${percentage}%`;
+        }
+        
+        function clearStatus() {
+            statusMessages.innerHTML = '';
+            statusContainer.style.display = 'none';
+            updateProgress(0);
+        }
+        
+        async function performUpload(formData) {
+            try {
+                showStatus('📁 Uploading CSV file...', 'info');
+                updateProgress(20);
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentSessionId = result.session_id;
+                    showStatus(`✅ Found ${result.profiles_count} LinkedIn profiles! Starting enrichment...`, 'success');
+                    updateProgress(50);
+                    
+                    // Show enrichment progress
+                    showStatus('📞 Enriching contact details (emails, phones)...', 'info');
+                    updateProgress(70);
+                    
+                    // Check for immediate email status
+                    if (result.email_sent) {
+                        showStatus(`✅ Email sent successfully to ${result.email_recipient}!`, 'success');
+                        updateProgress(100);
+                        searchBtn.disabled = false;
+                        searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+                    } else if (result.email_error) {
+                        showStatus(`⚠️ Email delivery failed: ${result.email_error}`, 'error');
+                        showStatus(`📁 CSV file saved locally: ${result.csv_file}`, 'info');
+                        updateProgress(100);
+                        searchBtn.disabled = false;
+                        searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+                    } else {
+                        // Continue with monitoring
+                        showStatus('📧 Results will be emailed when ready (5-15 minutes)', 'info');
+                        updateProgress(90);
+                        setTimeout(() => {
+                            updateProgress(100);
+                            showStatus('✅ Processing complete! Check your email for results.', 'success');
+                            searchBtn.disabled = false;
+                            searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+                        }, 300000); // 5 minutes
+                    }
+                } else {
+                    showStatus(`❌ Upload failed: ${result.error}`, 'error');
+                    searchBtn.disabled = false;
+                    searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+                }
+            } catch (error) {
+                showStatus(`❌ Upload error: ${error.message}`, 'error');
+                searchBtn.disabled = false;
+                searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+            }
+        }
+        
+        async function revealContacts(sessionId) {
+            try {
+                showStatus('📞 Enriching contact details (emails, phones)...', 'info');
+                updateProgress(70);
+                
+                const response = await fetch(`/reveal/${sessionId}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(`🎉 Contact enrichment initiated for ${result.profiles_count} profiles!`, 'success');
+                    showStatus(`📧 Results will be emailed when ready (${result.estimated_time})`, 'info');
+                    updateProgress(90);
+                    
+                    // Check for immediate email status
+                    if (result.email_sent) {
+                        showStatus(`✅ Email sent successfully to ${result.email_recipient}!`, 'success');
+                        updateProgress(100);
+                        searchBtn.disabled = false;
+                        searchBtn.textContent = '🚀 Start Contact Discovery';
+                    } else if (result.email_error) {
+                        showStatus(`⚠️ Email delivery failed: ${result.email_error}`, 'error');
+                        showStatus(`📁 CSV file saved locally: ${result.csv_file}`, 'info');
+                        updateProgress(100);
+                        searchBtn.disabled = false;
+                        searchBtn.textContent = '🚀 Start Contact Discovery';
+                    } else {
+                        // Start status monitoring for async processing
+                        monitorProgress(sessionId);
+                    }
+                } else {
+                    showStatus(`❌ Contact reveal failed: ${result.error}`, 'error');
+                    searchBtn.disabled = false;
+                    searchBtn.textContent = '🚀 Start Contact Discovery';
+                }
+            } catch (error) {
+                showStatus(`❌ Contact reveal error: ${error.message}`, 'error');
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🚀 Start Contact Discovery';
+            }
+        }
+        
+        async function monitorProgress(sessionId) {
+            let attempts = 0;
+            const maxAttempts = 20; // 10 minutes
+            
+            const checkStatus = async () => {
+                try {
+                    const response = await fetch(`/status/${sessionId}`);
+                    const result = await response.json();
+                    
+                    attempts++;
+                    
+                    if (attempts >= maxAttempts) {
+                        showStatus('⏰ Processing is taking longer than expected. Results will still be emailed when ready.', 'info');
+                        updateProgress(100);
+                        searchBtn.disabled = false;
+                        searchBtn.textContent = '🚀 Start Contact Discovery';
+                        return;
+                    }
+                    
+                    // Continue monitoring
+                    setTimeout(checkStatus, 30000); // Check every 30 seconds
+                    
+                } catch (error) {
+                    console.log('Status check error:', error);
+                    setTimeout(checkStatus, 30000);
+                }
+            };
+            
+            // Start monitoring after 2 minutes
+            setTimeout(checkStatus, 120000);
+            
+            // Complete progress after 5 minutes regardless
+            setTimeout(() => {
+                updateProgress(100);
+                showStatus('✅ Processing complete! Check your email for results.', 'success');
+                showStatus('📧 If no email received, check spam folder or contact support.', 'info');
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🚀 Start Contact Discovery';
+            }, 300000);
+        }
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            clearStatus();
+            searchBtn.disabled = true;
+            searchBtn.textContent = '🔄 Processing...';
+            
+            // Create FormData for file upload
+            const formData = new FormData();
+            const fileInput = document.getElementById('linkedin_file');
+            const emailInput = document.getElementById('user_email');
+            
+            // Validate required fields
+            if (!fileInput.files[0]) {
+                showStatus('❌ Please select a CSV file to upload', 'error');
+                searchBtn.disabled = false;
+                searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+                return;
+            }
+            
+            if (!emailInput.value.trim()) {
+                showStatus('❌ Please enter an email address', 'error');
+                searchBtn.disabled = false;
+                searchBtn.textContent = '📧 Enrich LinkedIn Contacts';
+                return;
+            }
+            
+            // Add form data
+            formData.append('linkedin_file', fileInput.files[0]);
+            formData.append('user_email', emailInput.value.trim());
+            
+            await performUpload(formData);
+        });
+        
+        // Auto-focus first input
+        document.getElementById('linkedin_file').focus();
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable
 from datetime import datetime
 
-DATA_ROOT = Path(os.getenv("DATA_ROOT", "/data")).resolve()
+DATA_ROOT = Path(os.getenv("DATA_ROOT", "data")).resolve()
 BATCHES_DIR = DATA_ROOT / "batches"
 REQUESTS_DIR = DATA_ROOT / "requests"
 BATCHES_DIR.mkdir(parents=True, exist_ok=True)

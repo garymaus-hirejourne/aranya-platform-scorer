@@ -29,6 +29,31 @@ No more manual spreadsheet grinding or intern search queries. We build what othe
 - **Modular Scoring** — Extensible person/model logic for platform engineer rubrics
 - **Tools & Scripts** — Standalone enrichment runner and result merger
 
+## 4-Step Workflow
+
+### Step 1 & 2: GitHub Sourcing & Deep Scoring
+- Parse job description PDFs to generate scoring rubrics
+- Search GitHub for relevant contributors
+- Score candidates against rubric dimensions
+- Extract LinkedIn URLs from GitHub profiles (when available)
+- **Output:** `deep_scored_candidates_v3.csv`
+
+### Step 3: LinkedIn Discovery (Clay.com)
+- **Purpose:** Enrich GitHub candidates with additional LinkedIn profile data
+- **Process:** Manual workflow using Clay.com external service
+- **Input:** CSV from Steps 1&2 with partial/missing LinkedIn URLs
+- **Output:** Clay-enriched CSV with verified LinkedIn profiles
+- **Note:** This is a manual external workflow with instructions provided in the dashboard
+
+### Step 4: Contact Enrichment (SignalHire)
+- **Purpose:** Find verified emails and phone numbers via SignalHire API
+- **Process:** Automated webhook-based enrichment
+- **Input:** CSV with confirmed LinkedIn URLs (from Clay or any source)
+- **Output:** Enriched CSV with emails, phones, company data in `data/batches/{batch_id}/results.csv`
+- **Note:** Fully automated with real-time webhook callbacks and dashboard progress tracking
+
+**Key Difference:** Step 3 discovers/verifies LinkedIn profiles (manual, external). Step 4 enriches with contact information (automated, API-based).
+
 ## Repository Structure
 aranya-platform-scorer/
 ├── src/                    # Core application code

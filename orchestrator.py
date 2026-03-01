@@ -10,6 +10,7 @@ from pdf_parser import extract_text_from_pdf
 from llm_generator import RubricGenerator
 from learning_engine import LearningEngine
 from feedback_tracker import FeedbackTracker
+from elite_search_queries import get_elite_queries
 
 load_dotenv()
 
@@ -260,21 +261,26 @@ def run_deep_scorer(rubric_data, users_file="output/sharded_users.csv", output_f
 
 def main():
     """
-    End-to-end orchestrator for automated candidate sourcing and scoring.
-    
-    Usage: python orchestrator.py <path_to_job_description.pdf> [--top N]
+    Main orchestrator that runs the full pipeline:
+    1. Parse PDF job description
+    2. Generate rubric and search queries with LLM (or use elite queries)
+    3. Run deep GitHub search
+    4. Score candidates
+    5. Output results
     """
     if len(sys.argv) < 2:
-        print("Usage: python orchestrator.py <path_to_job_description.pdf> [--top N]", file=sys.stderr)
-        print("\nThis script will:", file=sys.stderr)
-        print("  1. Extract text from the PDF job description", file=sys.stderr)
-        print("  2. Use OpenAI to generate a scoring rubric and search queries", file=sys.stderr)
-        print("  3. Run a deep GitHub search using the generated queries", file=sys.stderr)
-        print("  4. Score all found candidates against the generated rubric", file=sys.stderr)
-        print("  5. Output the top N candidates (default: 200) to a CSV", file=sys.stderr)
+        print("Usage: python orchestrator.py <job_description.pdf> [--elite-queries]", file=sys.stderr)
+        print("\nThis will:", file=sys.stderr)
+        print("  1. Extract text from the PDF", file=sys.stderr)
+        print("  2. Use OpenAI to generate a custom rubric and search queries", file=sys.stderr)
+        print("     OR use --elite-queries flag to use pre-optimized queries for 80+ scores", file=sys.stderr)
+        print("  3. Run a deep GitHub search across all US states", file=sys.stderr)
+        print("  4. Score all candidates against the rubric", file=sys.stderr)
+        print("  5. Output ranked results", file=sys.stderr)
         sys.exit(1)
     
     pdf_path = sys.argv[1]
+    use_elite_queries = "--elite-queries" in sys.argv
     top_n = 200
     
     if '--top' in sys.argv:
@@ -286,44 +292,43 @@ def main():
     print("AUTOMATED RECRUITING PIPELINE", file=sys.stderr)
     print("=" * 80, file=sys.stderr)
     
-    print(f"\n[STEP 1/5] Extracting text from PDF: {pdf_path}", file=sys.stderr)
+    # Step 1: Extract job description
+    print("\n[STEP 1] Extracting text from PDF...", file=sys.stderr)
     jd_text = extract_text_from_pdf(pdf_path)
-    print(f"[STEP 1/5] Extracted {len(jd_text)} characters", file=sys.stderr)
+    print(f"Extracted {len(jd_text)} characters", file=sys.stderr)
     
-    print(f"\n[STEP 2/5] Generating rubric and search queries using OpenAI...", file=sys.stderr)
-    generator = RubricGenerator()
-    llm_output = generator.generate_rubric_and_queries(jd_text)
+    # Step 2: Generate or use elite queries
+    print("\n[STEP 2] Generating search queries...", file=sys.stderr)
     
-    rubric_data = llm_output['rubric']
-    search_queries = llm_output['search_queries']
-    
-    tracker = FeedbackTracker()
-    stats = tracker.get_statistics()
-    
-    if stats['total'] >= 3:
-        print(f"\n[LEARNING] Found {stats['total']} historical candidates with {stats['success_rate']}% success rate", file=sys.stderr)
-        print(f"[LEARNING] Refining rubric and queries based on past learnings...", file=sys.stderr)
-        
-        learning_engine = LearningEngine()
-        
-        rubric_data = learning_engine.refine_rubric(rubric_data, jd_text)
-        search_queries = learning_engine.optimize_search_queries(search_queries)
-        
-        print(f"[LEARNING] Applied learnings from historical data", file=sys.stderr)
+    if use_elite_queries:
+        print("Using elite pre-optimized queries (80+ score target)", file=sys.stderr)
+        search_queries = get_elite_queries()
+        print(f"Loaded {len(search_queries)} elite queries", file=sys.stderr)
     else:
-        print(f"\n[LEARNING] Only {stats['total']} historical candidates tracked. Need 3+ for learning.", file=sys.stderr)
-        print(f"[LEARNING] Using base rubric without refinement", file=sys.stderr)
+        print("Generating queries with OpenAI...", file=sys.stderr)
+        try:
+            generator = RubricGenerator()
+            result = generator.generate_rubric_and_queries(jd_text)
+            search_queries = result['search_queries']
+            print(f"Generated {len(search_queries)} queries", file=sys.stderr)
+        except Exception as e:
+            print(f"ERROR: Failed to generate queries: {e}", file=sys.stderr)
+            print("Falling back to elite queries...", file=sys.stderr)
+            search_queries = get_elite_queries()
+    
+    # Save queries
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
     
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    rubric_csv_path = f"output/generated_rubric_{timestamp}.csv"
-    generator.rubric_to_csv(rubric_data, rubric_csv_path)
-    
-    queries_json_path = f"output/generated_queries_{timestamp}.json"
+    queries_json_path = output_dir / f"search_queries_{timestamp}.json"
     with open(queries_json_path, 'w', encoding='utf-8') as f:
-        json.dump(llm_output, indent=2, fp=f)
-    print(f"[STEP 2/5] Saved queries to {queries_json_path}", file=sys.stderr)
+        json.dump({"search_queries": search_queries, "elite_mode": use_elite_queries}, f, indent=2)
+    print(f"Saved queries to {queries_json_path}", file=sys.stderr)
     
-    print(f"\n[STEP 3/5] Running deep GitHub search...", file=sys.stderr)
+    # Step 3: Run deep search
+    print("\n[STEP 3] Running deep GitHub search...", file=sys.stderr)
+    print(f"Searching with {len(search_queries)} queries across all US states", file=sys.stderr)
     users_file = run_shard_search(search_queries)
     
     print(f"\n[STEP 4/5] Scoring candidates against generated rubric...", file=sys.stderr)

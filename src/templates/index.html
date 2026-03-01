@@ -1,0 +1,631 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hirejourne.com Contact Enrichment Control Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .subhead {
+      color: #9ca3af;
+      margin-bottom: 1.5rem;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: #020617;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      border: 1px solid #1f2937;
+    }
+    .card-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+      margin-bottom: 0.35rem;
+    }
+    .card-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.1rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #111827;
+      border: 1px solid #1f2937;
+    }
+    .status-dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 999px;
+      background: #22c55e;
+    }
+    .status-dot.error { background: #ef4444; }
+    .status-dot.idle { background: #eab308; }
+
+    .progress-container {
+      background: #020617;
+      border-radius: 0.75rem;
+      border: 1px solid #1f2937;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .progress-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+    .progress-bar {
+      position: relative;
+      width: 100%;
+      height: 0.85rem;
+      border-radius: 999px;
+      background: #020617;
+      overflow: hidden;
+      border: 1px solid #1f2937;
+    }
+    .progress-fill {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #14b8a6);
+      transition: width 0.5s ease;
+    }
+    .progress-text {
+      margin-top: 0.35rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .batches-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .batches-table th,
+    .batches-table td {
+      padding: 0.45rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid #111827;
+    }
+    .batches-table th {
+      font-weight: 500;
+      color: #9ca3af;
+      background: #020617;
+      position: sticky;
+      top: 0;
+    }
+    .batches-wrapper {
+      background: #020617;
+      border-radius: 0.75rem;
+      border: 1px solid #1f2937;
+      padding: 1rem 1.25rem;
+      max-height: 340px;
+      overflow: auto;
+    }
+    code {
+      background: #020617;
+      padding: 0.15rem 0.3rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      border: 1px solid #1f2937;
+      color: #e5e7eb;
+    }
+    .small {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+    .brand-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brand-logo {
+      display: block;
+      max-height: 90px;
+      height: auto;
+      width: auto;
+    }
+    .veteran-badge {
+      display: block;
+      max-height: 128px;
+      height: auto;
+      width: auto;
+    }
+  </style>
+</head>
+<body>
+  <header class="brand-header">
+    <div class="brand-left">
+      <img src="/static/images/hirejourne_logo.jpg" alt="HireJourne" class="brand-logo" />
+      <div>
+        <h1>Hirejourne.com Contact Enrichment Control Panel</h1>
+        <div class="subhead">Single place to monitor status, start runs, and inspect webhooks.</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;">
+      <img src="/static/images/veteran_badge.jpg" alt="Veteran Owned Business" class="veteran-badge" />
+      <div>
+        <div class="status-pill" id="status-pill">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Unknown</span>
+        </div>
+        <div class="small" id="status-timestamp">3/1/2026, 12:35:00 PM</div>
+        <div class="small" id="panel-version" style="margin-top:0.4rem; font-weight:600;">Version: 2.4</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Simple tab navigation -->
+  <nav style="margin:1rem 0 1.25rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+    <button id="tab-dashboard" onclick="showView('dashboard')" style="background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.8rem;cursor:pointer;">Dashboard</button>
+    <button id="tab-candidate" onclick="showView('candidate')" style="background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.8rem;cursor:pointer;">Step 1 & 2: GitHub Sourcing</button>
+    <button id="tab-linkedin" onclick="showView('linkedin')" style="background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.8rem;cursor:pointer;">Step 3: LinkedIn Discovery</button>
+    <button id="tab-enrich" onclick="showView('enrich')" style="background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.8rem;cursor:pointer;">Step 4: Contact Enrichment</button>
+    <button id="tab-ngrok" onclick="showView('ngrok')" style="background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.8rem;cursor:pointer;">Ngrok Inspector</button>
+    <a href="/revision-log" target="_blank" rel="noopener" style="background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.8rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;">Revision Log</a>
+  </nav>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="view-dashboard">
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="card-title" style="margin-bottom:0.6rem;">Per Enrichment (This Run)</div>
+    <section class="card-grid" style="margin-bottom:0;">
+      <div class="card">
+        <div class="card-title">This run records</div>
+        <div class="card-value" id="run-file-records">0</div>
+        <div class="small">Rows currently in this run's results CSV</div>
+      </div>
+      <div class="card">
+        <div class="card-title">This run success / failed</div>
+        <div class="card-value" id="success-failed">0 / 0</div>
+        <div class="small">Status counts for the current run results file</div>
+      </div>
+      <div class="card">
+        <div class="card-title">This run batch files (WIP)</div>
+        <div class="card-value" id="total-batches">0</div>
+        <div class="small">Batch CSV files for this run (purged on next run)</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-title" style="margin-bottom:0.6rem;">Lifetime / Legacy Totals</div>
+    <section class="card-grid" style="margin-bottom:0;">
+      <div class="card">
+        <div class="card-title">Lifetime enriched</div>
+        <div class="card-value" id="lifetime-records">0</div>
+        <div class="small">All records enriched since launch (metrics counter)</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Legacy results file</div>
+        <div class="card-value" id="main-file-exists">Checking...</div>
+        <div class="small" id="main-file-path">Env: SIGNALHIRE_RESULTS_CSV</div>
+      </div>
+    </section>
+  </div>
+
+  <section class="progress-container">
+    <div class="progress-label-row">
+      <span>Current run completion</span>
+      <span id="progress-label">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-text" id="run-summary-text">
+      Waiting for a run to start...
+    </div>
+  </section>
+
+  <section class="progress-container" style="margin-bottom:1.5rem;">
+    <div class="progress-label-row">
+      <span>Test Emailability of Results?</span>
+      <span class="small" id="emailable-stage">idle</span>
+    </div>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+      <label style="display:flex;gap:0.5rem;align-items:center;font-size:0.85rem;text-transform:none;letter-spacing:0;color:#e5e7eb;margin:0;">
+        <input type="checkbox" id="emailable-confirm" />
+        Yes, run Emailable verification
+      </label>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <label for="emailable-max-rows" style="margin:0;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Max rows (optional)</label>
+        <input type="number" id="emailable-max-rows" min="1" placeholder="e.g. 100" style="width:140px;padding:0.35rem 0.55rem;border-radius:0.4rem;border:1px solid #1f2937;background:#020617;color:#e5e7eb;font-size:0.85rem;" />
+      </div>
+      <button id="emailable-run-btn" style="background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:999px;padding:0.25rem 0.8rem;font-size:0.8rem;cursor:pointer;">Run Verification</button>
+      <a id="emailable-download" href="/download_emailable" target="_blank" rel="noopener" style="display:none;background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.25rem 0.8rem;font-size:0.8rem;cursor:pointer;text-decoration:none;">Download Verified CSV</a>
+    </div>
+    <div class="small" style="margin-top:0.4rem;" id="emailable-detail"></div>
+  </section>
+
+  <section class="batches-wrapper">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+      <div>
+        <div class="card-title" style="margin-bottom:0;">Recent batches</div>
+        <div class="small">From the <code>/batches</code> endpoint (most recent first)</div>
+      </div>
+      <button id="refresh-btn" style="background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:999px;padding:0.25rem 0.8rem;font-size:0.8rem;cursor:pointer;">Refresh now</button>
+    </div>
+    <table class="batches-table" id="batches-table">
+      <thead>
+        <tr>
+          <th>Batch ID</th>
+          <th>Filename</th>
+          <th>Records</th>
+          <th>Timestamp</th>
+          <th>Size (MB)</th>
+        </tr>
+      </thead>
+      <tbody id="batches-body">
+        <tr><td colspan="5" class="small">Loading batches...</td></tr>
+      </tbody>
+    </table>
+  </section>
+  </div>
+
+  <!-- ENRICH FORM VIEW (embedded) -->
+  <div id="view-enrich" style="display:none;height:80vh;position:relative;">
+    <iframe src="/enrich" style="width:100%;height:100%;border:1px solid #1f2937;border-radius:0.75rem;background:#020617;"></iframe>
+    <div id="enrich-lock" style="display:none;position:absolute;inset:0;border-radius:0.75rem;background:rgba(2,6,23,0.92);border:1px solid #ef4444;align-items:center;justify-content:center;padding:1.5rem;">
+      <div style="max-width:720px;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:700;color:#fecaca;letter-spacing:0.02em;">STOP: Enrichment in progress</div>
+        <div style="margin-top:0.6rem;color:#e5e7eb;line-height:1.4;">
+          A file enrichment job is currently running. This system processes one enrichment at a time.
+          Please wait until the dashboard reaches <strong>100%</strong> before starting another upload.
+        </div>
+        <div style="margin-top:0.75rem;color:#9ca3af;font-size:0.85rem;" id="enrich-lock-detail"></div>
+        <div style="margin-top:0.9rem;display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;">
+          <button type="button" onclick="showView('dashboard')" style="background:#111827;color:#e5e7eb;border:1px solid #1f2937;border-radius:999px;padding:0.35rem 0.9rem;font-size:0.85rem;cursor:pointer;">View Dashboard</button>
+          <a href="/download_final" target="_blank" rel="noopener" style="background:#020617;color:#9ca3af;border:1px solid #1f2937;border-radius:999px;padding:0.35rem 0.9rem;font-size:0.85rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;">Download Final (if ready)</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANDIDATE SEARCH VIEW (embedded) -->
+  <div id="view-candidate" style="display:none;height:80vh;position:relative;">
+    <iframe src="/candidate-search" style="width:100%;height:100%;border:1px solid #1f2937;border-radius:0.75rem;background:#020617;"></iframe>
+  </div>
+
+  <!-- LINKEDIN DISCOVERY VIEW (embedded) -->
+  <div id="view-linkedin" style="display:none;height:80vh;position:relative;">
+    <iframe src="/linkedin-discovery" style="width:100%;height:100%;border:1px solid #1f2937;border-radius:0.75rem;background:#020617;"></iframe>
+  </div>
+
+  <!-- NGROK INSPECTOR VIEW (embedded) -->
+  <div id="view-ngrok" style="display:none;height:80vh;">
+    <iframe src="http://127.0.0.1:4040" style="width:100%;height:100%;border:1px solid #1f2937;border-radius:0.75rem;background:#020617;"></iframe>
+  </div>
+
+  <script>
+    function showView(which) {
+      const views = {
+        dashboard: document.getElementById('view-dashboard'),
+        enrich: document.getElementById('view-enrich'),
+        candidate: document.getElementById('view-candidate'),
+        linkedin: document.getElementById('view-linkedin'),
+        ngrok: document.getElementById('view-ngrok'),
+      };
+
+      const tabs = {
+        dashboard: document.getElementById('tab-dashboard'),
+        enrich: document.getElementById('tab-enrich'),
+        candidate: document.getElementById('tab-candidate'),
+        linkedin: document.getElementById('tab-linkedin'),
+        ngrok: document.getElementById('tab-ngrok'),
+      };
+
+      for (const key of Object.keys(views)) {
+        views[key].style.display = key === which ? 'block' : 'none';
+      }
+
+      for (const key of Object.keys(tabs)) {
+        if (key === which) {
+          tabs[key].style.background = '#111827';
+          tabs[key].style.color = '#e5e7eb';
+        } else {
+          tabs[key].style.background = '#020617';
+          tabs[key].style.color = '#9ca3af';
+        }
+      }
+    }
+    let maxRecordsObserved = 0;
+
+    // Listen for messages from the Enrich iframe to auto-switch views
+    window.addEventListener('message', (event) => {
+      try {
+        const data = event.data || {};
+        if (data.type === 'enrichment-complete') {
+          // Switch to the dashboard view when enrichment completes
+          showView('dashboard');
+        }
+      } catch (e) {
+        console.error('Error handling postMessage', e);
+      }
+    });
+
+    function setStatus(status, timestamp) {
+      const pill = document.getElementById('status-pill');
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      const ts = document.getElementById('status-timestamp');
+
+      text.textContent = status || 'Unknown';
+      ts.textContent = timestamp ? new Date(timestamp).toLocaleString() : '';
+
+      dot.classList.remove('error', 'idle');
+      if (status === 'running') {
+        dot.classList.remove('error', 'idle');
+      } else if (status === 'error') {
+        dot.classList.add('error');
+      } else {
+        dot.classList.add('idle');
+      }
+    }
+
+    function updateProgressForRun(currentRun) {
+      let pct = 0;
+      const stage = currentRun && currentRun.stage ? currentRun.stage : 'idle';
+
+      // Simple stage-based progress approximation including missing-only build
+      if (stage === 'running_enrichment') {
+        pct = 40;
+      } else if (stage === 'waiting_for_callbacks') {
+        pct = 60;
+      } else if (stage === 'deduping_final_file') {
+        pct = 70;
+      } else if (stage === 'building_missing_only') {
+        pct = 90;
+      } else if (stage === 'completed_ok') {
+        pct = 100;
+      } else if (stage.startsWith('error_')) {
+        pct = 100;
+      } else {
+        pct = 0;
+      }
+
+      const fill = document.getElementById('progress-fill');
+      const label = document.getElementById('progress-label');
+      fill.style.width = pct + '%';
+      label.textContent = pct + '%';
+
+      const summaryEl = document.getElementById('run-summary-text');
+      if (!currentRun || stage === 'idle') {
+        summaryEl.textContent = 'Waiting for a run to start...';
+      } else {
+        const input = currentRun.input || 'n/a';
+        const out = currentRun.output_final || currentRun.output_deduped || currentRun.output_split || 'n/a';
+        const total = Number(currentRun.total_ids || 0);
+        const splitRows = Number(currentRun.split_rows || 0);
+        const missingOnly = currentRun.missing_only || null;
+        const missingCount = Number(currentRun.missing_count || 0);
+
+        let msg = `Stage: ${stage}. Input: ${input}. `;
+        if (currentRun.output_final) {
+          msg += `Final output: <a href="/download_final" target="_blank">${out}</a>.`;
+        } else {
+          msg += `Final output: ${out}.`;
+        }
+        if (total || splitRows) {
+          msg += ` Identifiers: ${total}, split rows: ${splitRows}.`;
+        }
+        if (missingOnly) {
+          msg += ` Missing-only CSV: ${missingOnly}`;
+          if (missingCount) {
+            msg += ` (rows: ${missingCount}).`;
+          }
+        }
+        if (currentRun.error) {
+          msg += ` Error: ${currentRun.error}`;
+        }
+        summaryEl.innerHTML = msg;
+      }
+    }
+
+    function updateEnrichLock(currentRun) {
+      const lock = document.getElementById('enrich-lock');
+      const detail = document.getElementById('enrich-lock-detail');
+      if (!lock || !detail) return;
+
+      const stage = currentRun && currentRun.stage ? currentRun.stage : 'idle';
+      const isActive = stage && stage !== 'idle' && stage !== 'completed_ok' && !stage.startsWith('error_');
+
+      if (isActive) {
+        lock.style.display = 'flex';
+        const input = currentRun && currentRun.input ? currentRun.input : 'n/a';
+        detail.textContent = `Stage: ${stage}. Input: ${input}`;
+      } else {
+        lock.style.display = 'none';
+        detail.textContent = '';
+      }
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/status');
+        if (!res.ok) throw new Error('Status HTTP ' + res.status);
+        const data = await res.json();
+
+        setStatus(data.status, data.timestamp);
+
+        const mainExistsEl = document.getElementById('main-file-exists');
+        mainExistsEl.textContent = data.main_file_exists ? 'Exists' : 'Not found';
+
+        const lifetime = Number(data.lifetime_total_records || 0);
+        document.getElementById('lifetime-records').textContent = lifetime.toLocaleString();
+
+        const runRecords = Number(data.run_file_records || 0);
+        document.getElementById('run-file-records').textContent = runRecords.toLocaleString();
+
+        const succ = Number(data.run_file_successful || 0);
+        const fail = Number(data.run_file_failed || 0);
+        document.getElementById('success-failed').textContent = succ.toLocaleString() + ' / ' + fail.toLocaleString();
+
+        const totalBatches = Number(data.total_batch_files || 0);
+        document.getElementById('total-batches').textContent = totalBatches.toLocaleString();
+
+        const currentRun = data.current_run || null;
+        updateProgressForRun(currentRun);
+        updateEnrichLock(currentRun);
+
+        updateEmailableUI(data);
+      } catch (err) {
+        console.error('Error fetching status', err);
+        setStatus('error', null);
+      }
+    }
+
+    function updateEmailableUI(data) {
+      const stage = (data && data.emailable_stage) ? String(data.emailable_stage) : 'idle';
+      const out = (data && data.emailable_output) ? String(data.emailable_output) : '';
+      const err = (data && data.emailable_error) ? String(data.emailable_error) : '';
+      const verified = Number(data && data.emailable_verified_rows ? data.emailable_verified_rows : 0);
+
+      const stageEl = document.getElementById('emailable-stage');
+      const detailEl = document.getElementById('emailable-detail');
+      const dl = document.getElementById('emailable-download');
+      if (stageEl) stageEl.textContent = stage;
+
+      let msg = '';
+      if (stage === 'running') {
+        msg = 'Verification running...';
+      } else if (stage === 'completed_ok') {
+        msg = 'Verification complete.';
+        if (verified) {
+          msg += ' Verified rows: ' + verified.toLocaleString() + '.';
+        }
+        if (out) {
+          msg += ' Output: ' + out;
+        }
+      } else if (stage === 'error') {
+        msg = 'Verification error: ' + err;
+      } else {
+        msg = 'Disabled by default. Check the box and click Run Verification to test the FINAL_ENRICHED CSV.';
+      }
+      if (detailEl) detailEl.textContent = msg;
+
+      if (dl) {
+        dl.style.display = stage === 'completed_ok' && out ? 'inline-flex' : 'none';
+      }
+    }
+
+    async function runEmailableVerification() {
+      const confirm = document.getElementById('emailable-confirm');
+      const btn = document.getElementById('emailable-run-btn');
+      const maxRowsEl = document.getElementById('emailable-max-rows');
+
+      if (!confirm || !confirm.checked) {
+        alert('Check the box to confirm you want to run Emailable verification.');
+        return;
+      }
+
+      let maxRows = null;
+      if (maxRowsEl && maxRowsEl.value) {
+        maxRows = parseInt(maxRowsEl.value, 10);
+        if (!Number.isFinite(maxRows) || maxRows <= 0) {
+          maxRows = null;
+        }
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Starting...';
+      }
+
+      try {
+        const resp = await fetch('/verify_emailable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ max_rows: maxRows })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          throw new Error((data && data.error) ? data.error : ('HTTP ' + resp.status));
+        }
+      } catch (e) {
+        alert('Emailable verification failed to start: ' + e);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Run Verification';
+        }
+        await fetchStatus();
+      }
+    }
+
+    async function fetchBatches() {
+      const body = document.getElementById('batches-body');
+      try {
+        const res = await fetch('/batches');
+        if (!res.ok) throw new Error('Batches HTTP ' + res.status);
+        const data = await res.json();
+
+        const batches = Array.isArray(data.batches) ? data.batches : [];
+        if (!batches.length) {
+          body.innerHTML = '<tr><td colspan="5" class="small">No batch files found yet.</td></tr>';
+          return;
+        }
+
+        body.innerHTML = '';
+        for (const b of batches) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${(b.batch_id || '').toString().slice(0, 12)}</code></td>
+            <td>${b.filename || ''}</td>
+            <td>${Number(b.records || 0).toLocaleString()}</td>
+            <td>${b.timestamp || ''}</td>
+            <td>${Number(b.size_mb || 0).toFixed(2)}</td>
+          `;
+          body.appendChild(tr);
+        }
+      } catch (err) {
+        console.error('Error fetching batches', err);
+        body.innerHTML = '<tr><td colspan="5" class="small">Error loading batches.</td></tr>';
+      }
+    }
+
+    async function refreshAll() {
+      await Promise.all([fetchStatus(), fetchBatches()]);
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+    document.getElementById('emailable-run-btn').addEventListener('click', runEmailableVerification);
+
+    // Default view is the Enrich form
+    showView('enrich');
+
+    refreshAll();
+    setInterval(refreshAll, 5000);
+  </script>
+</body>
+</html>

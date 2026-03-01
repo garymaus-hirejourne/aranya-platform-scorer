@@ -1,15 +1,18 @@
 
 import csv, time, requests, os, sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_KEY = os.getenv("SIGNALHIRE_API_KEY", "YOUR_SIGNALHIRE_KEY")
 ENDPOINT = "https://www.signalhire.com/api/v1/candidate/search"
-CALLBACK_URL = os.getenv("SIGNALHIRE_CALLBACK_URL", "https://YOUR_DOMAIN/signalhire/webhook")
+CALLBACK_URL = os.getenv("WEBHOOK_BASE_URL", "https://YOUR_DOMAIN").rstrip("/") + "/signalhire/callback"
 
 def chunks(lst, n=100):
     for i in range(0, len(lst), n):
         yield lst[i:i+n]
 
-def load_identifiers(csv_path, columns=("LinkedIn URL","linkedin","linkedin_url","profile")):
+def load_identifiers(csv_path, columns=("LinkedIn Profile","LinkedIn URL","linkedin","linkedin_url","profile")):
     items = []
     with open(csv_path, newline='', encoding="utf-8") as f:
         r = csv.DictReader(f)
@@ -25,7 +28,7 @@ def submit_batch(items):
     payload = {"items": items, "callbackUrl": CALLBACK_URL}
     resp = requests.post(
         ENDPOINT,
-        headers={"apikey": API_KEY},
+        headers={"Content-Type": "application/json", "apikey": API_KEY},
         json=payload,
         timeout=30
     )
@@ -35,6 +38,7 @@ def submit_batch(items):
     print("Submitted batch; response:", resp.text[:200])
 
 def main():
+    print("DEBUG: Running signalhire_enrich.py from aranya-platform-scorer (v2.3.1)")
     if len(sys.argv) < 2:
         print("Usage: python tools/signalhire_enrich.py /path/to/input.csv [batch_size]")
         sys.exit(2)

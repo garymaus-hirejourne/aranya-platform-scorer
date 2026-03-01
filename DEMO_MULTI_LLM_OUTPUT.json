@@ -1,0 +1,75 @@
+{
+  "model": "ensemble",
+  "agreement_score": 0.87,
+  "rubric": {
+    "Kubernetes_Production_Operators": 35,
+    "Go_Programming_Skills": 25,
+    "Infrastructure_Automation": 20,
+    "CNCF_Open_Source": 12,
+    "GitOps_Cloud_Native": 8
+  },
+  "search_queries": [
+    "kubernetes operator controller location:US language:go",
+    "kubebuilder operator-sdk location:US",
+    "k8s crd controller-runtime location:US",
+    "terraform helm kubernetes production location:US",
+    "argocd flux gitops location:US",
+    "cncf contributor kubernetes location:US",
+    "rook ceph storage operator location:US",
+    "kubernetes cluster production golang location:US",
+    "operator-framework kubebuilder location:US language:go",
+    "k8s infrastructure platform engineer location:US"
+  ],
+  "reasoning": "OpenAI emphasized Kubernetes operator development and Go programming as primary skills, focusing on hands-on operator creation. Gemini emphasized production Kubernetes experience and CNCF ecosystem involvement, highlighting the importance of real-world cluster management. The ensemble merged both perspectives to create a comprehensive rubric that values both operator development skills AND production experience. High agreement (87%) indicates both AIs strongly aligned on the core requirements.",
+  "openai_rubric": {
+    "Kubernetes_Operators": 35,
+    "Go_Programming": 25,
+    "Infrastructure_as_Code": 20,
+    "Cloud_Native_Tools": 15,
+    "Open_Source_Contributions": 5
+  },
+  "gemini_rubric": {
+    "Production_K8s_Experience": 35,
+    "Golang_Proficiency": 25,
+    "Terraform_Helm_Skills": 20,
+    "CNCF_Project_Involvement": 12,
+    "GitOps_Expertise": 8
+  },
+  "comparison_with_current": {
+    "current_rubric": {
+      "Go_K8s_Operators": 30,
+      "IaC_Terraform_Helm": 25,
+      "Tooling_Automation": 20,
+      "GitOps": 10,
+      "Storage": 10,
+      "OSS_Familiarity": 5
+    },
+    "current_queries": [
+      "kubernetes terraform location:US",
+      "k8s golang location:US",
+      "infrastructure automation location:US"
+    ],
+    "improvements": {
+      "rubric_changes": [
+        "Increased K8s operators weight (30 → 35) to emphasize core skill",
+        "Merged similar dimensions for clarity",
+        "Removed 'Storage' as standalone (too rare, now part of operator work)",
+        "Added 'CNCF_Open_Source' to capture ecosystem involvement"
+      ],
+      "query_improvements": [
+        "3 generic queries → 10 targeted queries (3.3x more coverage)",
+        "Added specific operator frameworks (kubebuilder, operator-sdk)",
+        "Added CNCF contributor targeting",
+        "Added production-focused keywords",
+        "Added GitOps-specific queries (ArgoCD, Flux)",
+        "Added storage operator queries (Rook, Ceph)"
+      ],
+      "expected_impact": {
+        "candidate_discovery": "+40% more candidates found",
+        "candidate_quality": "+60% higher average scores",
+        "candidates_above_80": "50-100 candidates (vs 0 currently)",
+        "search_precision": "Improved from 25% to 45%"
+      }
+    }
+  }
+}

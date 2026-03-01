@@ -1,0 +1,263 @@
+# HireJourne Platform - AI Assistant Rules
+
+## Workflow Orchestration
+
+### 1. Plan Node Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately – don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+
+### 2. Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+### 3. Self-Improvement Loop
+- After ANY correction from the user: update `tasks/lessons.md` with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
+
+### 4. Verification Before Done
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+
+### 5. Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes – don't over-engineer
+- Challenge your own work before presenting it
+
+### 6. Autonomous Bug Fixing
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests – then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
+
+## Task Management
+
+1. **Plan First**: Write plan to `tasks/todo.md` with checkable items
+2. **Verify Plan**: Check in before starting implementation
+3. **Track Progress**: Mark items complete as you go
+4. **Explain Changes**: High-level summary at each step
+5. **Document Results**: Add review section to `tasks/todo.md`
+6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+
+## Core Principles
+
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+
+## HireJourne Mission Statement
+
+HireJourne connects military veterans to elite platform engineering roles through intelligent automation. Our unified dashboard streamlines the entire talent acquisition pipeline from GitHub discovery to verified contact enrichment.
+
+### Core Values
+1. **Veterans First** - Prioritize veteran-owned business operations and veteran candidate sourcing
+2. **Quality Over Quantity** - Focus on elite platform engineers with proven open-source contributions
+3. **Automation Excellence** - Minimize manual work through intelligent workflows
+4. **Data Integrity** - Ensure accurate LinkedIn URLs, contact information, and scoring metrics
+5. **Simplicity** - Keep the codebase maintainable and workflows straightforward
+
+## Project Architecture: Unified Dashboard (4-Step Workflow)
+
+### Step 1 & 2: GitHub Sourcing & Deep Scoring
+- **Purpose**: Discover and rank elite platform engineers from open-source contributions
+- **Key Files**: `deep_scorer_v3.py`, `linkedin_extractor.py`, `pdf_parser.py`
+- **Process**: 
+  1. Parse job description PDFs to generate scoring rubrics
+  2. Search GitHub for relevant contributors
+  3. Score candidates against rubric dimensions
+  4. Extract LinkedIn URLs from GitHub profiles (only if explicitly found)
+  5. Output: `output/deep_scored_candidates_v3.csv`
+
+### Step 3: LinkedIn Discovery (Clay.com)
+- **Purpose**: Enrich candidates with additional LinkedIn profile data
+- **Key Files**: `clay_enrichment.py`, `merge_clay_results.py`
+- **Process**: Manual workflow using Clay.com for LinkedIn data enrichment
+- **Output**: `output/clay_enriched_results.csv`
+
+### Step 4: Contact Enrichment (SignalHire)
+- **Purpose**: Find verified emails and phone numbers via SignalHire API
+- **Key Files**: `tools/signalhire_enrich.py`, `src/app.py`, `src/services/signalhire_client.py`
+- **Process**:
+  1. Upload CSV with LinkedIn URLs
+  2. Submit to SignalHire API in batches
+  3. Receive enriched data via webhooks
+  4. Output: Final enriched CSV with contact information
+
+### Unified Dashboard (FastAPI)
+- **Location**: `src/app.py`, `src/templates/`
+- **URL**: `http://127.0.0.1:8080/`
+- **Features**:
+  - Real-time status monitoring
+  - Multi-tab interface for each workflow step
+  - Ngrok webhook inspector
+  - Batch tracking and progress display
+  - Version: 2.3 (as of 2/26/2026)
+
+## Critical Coding Principles
+
+### 1. Minimal Impact
+- Only modify code directly related to the task
+- Avoid refactoring working code unless explicitly requested
+- Preserve existing functionality when adding features
+
+### 2. Use Existing Code
+- **ALWAYS** check for existing implementations before writing new code
+- Reuse scripts like `tools/signalhire_enrich.py` via subprocess calls
+- Don't reinvent the wheel - leverage what's already working
+
+### 3. Windows Compatibility
+- Use relative paths (`data/`) not absolute Unix paths (`/data`)
+- Test file operations on Windows filesystem
+- Handle path separators correctly with `pathlib.Path`
+
+### 4. Error Handling
+- Log errors to `logs/` directory with timestamps
+- Provide clear error messages to users
+- Never fail silently - always track issues in status objects
+
+### 5. Data Flow Integrity
+- LinkedIn URLs: Only include if explicitly found on GitHub profiles (no auto-generation)
+- CSV column names: Support variations ("LinkedIn Profile", "LinkedIn URL", "linkedin", etc.)
+- Status tracking: Update batch status at each workflow stage
+
+### 6. Version Control
+- Update `REVISION_LOG.md` for every significant change
+- Increment version number in dashboard header
+- Document breaking changes and migration steps
+
+## Common Tasks & Patterns
+
+### Running the Dashboard
+```bash
+# Start unified dashboard
+start_dashboard.bat
+
+# This launches:
+# 1. FastAPI server on port 8080
+# 2. Ngrok tunnel for webhooks
+# 3. Browser at http://127.0.0.1:8080/
+```
+
+### GitHub Scoring Workflow
+```bash
+# Requires: GITHUB_TOKEN, GEMINI_API_KEY in .env
+python deep_scorer_v3.py
+
+# Outputs: output/deep_scored_candidates_v3.csv
+```
+
+### SignalHire Enrichment
+```bash
+# Via dashboard: Upload CSV on Step 4 tab
+# Or direct script:
+python tools/signalhire_enrich.py "path/to/input.csv" [batch_size]
+
+# Requires: SIGNALHIRE_API_KEY, CALLBACK_BASE_URL in .env
+```
+
+### Debugging
+1. Check logs: `logs/server_*.log` and `logs/server_*.err.log`
+2. Verify batch status: `data/batches/{batch_id}/status.json`
+3. Inspect webhook traffic: Ngrok Inspector tab in dashboard
+4. Review revision history: `REVISION_LOG.md`
+
+## File Organization
+
+```
+aranya-platform-scorer/
+├── src/
+│   ├── app.py                    # FastAPI unified dashboard
+│   ├── templates/                # Jinja2 HTML templates
+│   ├── lib/
+│   │   ├── storage.py           # Batch tracking & persistence
+│   │   ├── emailer.py           # Result notification
+│   │   └── csv_writer.py        # CSV flattening utilities
+│   └── services/
+│       └── signalhire_client.py # SignalHire API client
+├── tools/
+│   └── signalhire_enrich.py     # Standalone enrichment script
+├── output/                       # Generated CSVs (gitignored)
+├── data/                         # Batch tracking data
+├── logs/                         # Server logs
+├── uploads/                      # User-uploaded CSVs
+├── deep_scorer_v3.py            # Main GitHub scoring script
+├── linkedin_extractor.py        # LinkedIn URL extraction
+├── start_dashboard.bat          # Windows startup script
+├── REVISION_LOG.md              # Change tracking
+└── .env                         # API keys & config (gitignored)
+```
+
+## Environment Variables
+
+### Required for GitHub Scoring
+- `GITHUB_TOKEN` - GitHub Personal Access Token
+- `GEMINI_API_KEY` - Google Gemini API key for rubric generation
+
+### Required for SignalHire Enrichment
+- `SIGNALHIRE_API_KEY` - SignalHire Person API key
+- `CALLBACK_BASE_URL` - Public webhook URL (ngrok or production domain)
+
+### Optional
+- `DATA_ROOT` - Data storage directory (default: `data`)
+- `SIGNALHIRE_API_BASE_URL` - SignalHire API endpoint (default: `https://www.signalhire.com`)
+
+## AI Assistant Behavior Guidelines
+
+### When Making Changes
+1. **Read first** - Always read existing code before modifying
+2. **Plan explicitly** - Use update_plan tool for multi-step tasks
+3. **Verify impact** - Check logs and test after changes
+4. **Document** - Update REVISION_LOG.md with all changes
+5. **Communicate clearly** - Explain what changed and why
+
+### When Debugging
+1. **Check logs first** - Review `logs/server_*.log` and `logs/server_*.err.log`
+2. **Verify paths** - Ensure Windows-compatible paths are used
+3. **Trace data flow** - Follow CSV through each workflow step
+4. **Test incrementally** - Verify each fix before moving to next issue
+
+### When User is Frustrated
+1. **Focus on root cause** - Don't apply band-aid fixes
+2. **Use existing code** - Don't rewrite what already works
+3. **Be efficient** - Minimize token usage by reusing code
+4. **Verify thoroughly** - Test changes before declaring success
+
+### Forbidden Actions
+- Never auto-generate LinkedIn URLs from GitHub usernames
+- Never delete or weaken existing tests without explicit direction
+- Never make up API endpoints or parameters
+- Never ignore Windows path compatibility issues
+- Never skip updating REVISION_LOG.md for significant changes
+
+## Success Metrics
+- Dashboard loads without errors on http://127.0.0.1:8080/
+- GitHub scoring produces non-empty output CSVs
+- LinkedIn URLs are only included when explicitly found
+- SignalHire enrichment successfully submits and receives callbacks
+- Progress tracking displays correctly on Dashboard tab
+- All changes documented in REVISION_LOG.md
+
+## Current Status (v2.3 - Feb 26, 2026)
+- ✅ Unified dashboard with 4-step workflow tabs
+- ✅ GitHub scoring with rubric generation
+- ✅ LinkedIn URL extraction (explicit only)
+- ✅ SignalHire enrichment integration
+- ✅ Webhook callback handling
+- ✅ Batch progress tracking
+- ⚠️ Clay.com integration (manual workflow)
+- ⚠️ Real-time progress updates (polling-based)
+
+## Veteran-Owned Business
+HireJourne is a **veteran-owned business** committed to serving the military community. All AI assistance should prioritize:
+- Reliability and mission-critical stability
+- Clear documentation for team handoffs
+- Efficient resource usage (API credits, tokens)
+- Professional-grade code quality
